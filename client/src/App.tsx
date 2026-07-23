@@ -2,6 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { lazy, Suspense } from 'react';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
+const Register = lazy(() => import('@/pages/Register'));
 const Login = lazy(() => import('@/pages/Login'));
 const Dashboard = lazy(() => import('@/pages/Dashboard'));
 function App() {
@@ -15,6 +16,7 @@ function App() {
                     <Routes>
                         <Route path="/" element={<Dashboard />} />
                         <Route path="/login" element={<Login />} />
+                        <Route path="/register" element={<Register />} />
                     </Routes>
                 </Suspense>
             </BrowserRouter>
