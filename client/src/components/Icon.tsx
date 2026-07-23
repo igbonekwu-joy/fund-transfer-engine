@@ -3,9 +3,10 @@ import type { FC, SVGProps } from 'react';
 export type IconName =
   | 'diamond' | 'grid' | 'list' | 'card' | 'trending' | 'clock'
   | 'settings' | 'logout' | 'more' | 'menu' | 'search' | 'bell'
-  | 'eye' | 'arrow-up' | 'arrow-down' | 'chevron-right'
+  | 'eye' | 'eye-off' | 'arrow-up' | 'arrow-down' | 'chevron-right'
   | 'send' | 'plus' | 'stats'
-  | 'coffee' | 'salary' | 'shop' | 'transfer' | 'subs' | 'ride';
+  | 'coffee' | 'salary' | 'shop' | 'transfer' | 'subs' | 'ride'
+  | 'mail' | 'lock' | 'user' | 'shield' | 'arrow-right';
 
 const paths: Record<IconName, string> = {
   diamond: '<path d="M4 12L11 5L20 12L11 19L4 12Z" />',
@@ -33,6 +34,12 @@ const paths: Record<IconName, string> = {
   transfer: '<path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 014-4h14"/><path d="M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 01-4 4H3"/>',
   subs: '<rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 3H8"/><path d="M12 3v4"/>',
   ride: '<path d="M5 17h14"/><path d="M5 17a2 2 0 104 0M15 17a2 2 0 104 0"/><path d="M3 17l1.5-6a2 2 0 012-1.5h11a2 2 0 012 1.5L21 17"/>',
+  mail: '<rect x="2" y="4" width="20" height="16" rx="2"/><path d="M22 6l-10 7L2 6"/>',
+  lock: '<rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 018 0v4"/>',
+  'eye-off': '<path d="M17.94 17.94A10.94 10.94 0 0112 19c-7 0-11-7-11-7a20.4 20.4 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 7 11 7a20.3 20.3 0 01-2.16 3.19"/><path d="M14.12 14.12a3 3 0 11-4.24-4.24"/><path d="M1 1l22 22"/>',
+  user: '<path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/>',
+  shield: '<path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6l8-4z"/>',
+  'arrow-right': '<path d="M5 12h14"/><path d="M13 5l7 7-7 7"/>',
 };
 
 interface IconProps extends SVGProps<SVGSVGElement> {

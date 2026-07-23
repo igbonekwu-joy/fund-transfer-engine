@@ -1,5 +1,5 @@
 import type { FC } from 'react';
-import Icon, { type IconName } from './Icon';
+import Icon, { type IconName } from '@/components/Icon';
 
 interface StatCardProps {
   label: string;
