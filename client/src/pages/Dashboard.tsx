@@ -1,12 +1,12 @@
 import { useState } from "react";
-import BudgetGoals from "../components/BudgetGoals";
-import QuickActions from "../components/QuickActions";
-import Sidebar from "../components/Sidebar";
-import SpendingChart from "../components/SpendingChart";
-import StatCard from "../components/StatCard";
-import Topbar from "../components/Topbar";
-import TransactionList from "../components/TransactionList";
-import UpcomingBills from "../components/UpcomingBills";
+import BudgetGoals from "@/components/BudgetGoals";
+import QuickActions from "@/components/QuickActions";
+import Sidebar from "@/components/Sidebar";
+import SpendingChart from "@/components/SpendingChart";
+import StatCard from "@/components/StatCard";
+import Topbar from "@/components/Topbar";
+import TransactionList from "@/components/TransactionList";
+import UpcomingBills from "@/components/UpcomingBills";
 import BalanceCard from "@/components/BalanceCard";
 
 const Dashboard = () => {
