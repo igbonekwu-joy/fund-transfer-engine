@@ -1,5 +1,5 @@
 import type { FC } from 'react';
-import Icon from './Icon';
+import Icon from '@/components/Icon';
 import { transactions } from '../data/mockData';
 
 const formatAmount = (n: number) => (n < 0 ? '−' : '+') + '₦' + Math.abs(n).toLocaleString();

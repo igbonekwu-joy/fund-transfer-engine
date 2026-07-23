@@ -1,5 +1,5 @@
 import type { FC } from 'react';
-import { budgetGoals } from '../data/mockData';
+import { budgetGoals } from '@/data/mockData';
 
 const formatShort = (n: number) => `₦${Math.round(n / 1000)}k`;
 

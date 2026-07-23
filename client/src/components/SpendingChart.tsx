@@ -1,5 +1,5 @@
 import { useState, type FC } from 'react';
-import { spendData, todayIndex } from '../data/mockData';
+import { spendData, todayIndex } from '@/data/mockData';
 
 const SpendingChart: FC = () => {
   const [tab, setTab] = useState<'month' | 'week'>('week');

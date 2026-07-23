@@ -1,5 +1,5 @@
 import type { FC } from 'react';
-import Icon from './Icon';
+import Icon from '@/components/Icon';
 
 interface TopbarProps {
   onMenuClick: () => void;
