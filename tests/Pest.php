@@ -18,6 +18,8 @@ pest()->extend(TestCase::class)
     ->use(RefreshDatabase::class)
     ->in('Feature');
 
+pest()->group('unit')->in('Unit');
+
 /*
 |--------------------------------------------------------------------------
 | Expectations
