@@ -1,6 +1,6 @@
 import type { FC } from 'react';
-import Icon, { type IconName } from './Icon';
-import { primaryNav, secondaryNav } from '../data/mockData';
+import Icon, { type IconName } from '@/components/Icon';
+import { primaryNav, secondaryNav } from '@/data/mockData';
 
 interface SidebarProps {
   isOpen: boolean;

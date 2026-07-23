@@ -1,5 +1,5 @@
 import type { FC } from 'react';
-import { bills } from '../data/mockData';
+import { bills } from '@/data/mockData';
 
 const UpcomingBills: FC = () => {
   return (

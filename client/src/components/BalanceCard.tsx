@@ -1,5 +1,5 @@
 import { useState, type FC } from 'react';
-import Icon from './Icon';
+import Icon from '@/components/Icon';
 
 const BalanceCard: FC = () => {
   const [hidden, setHidden] = useState(false);
