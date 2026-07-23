@@ -37,3 +37,23 @@ export interface NavItem {
   icon: string;
   badge?: string;
 }
+
+export interface FormState {
+  name: string;
+  email: string;
+  password: string;
+  agree: boolean;
+}
+
+export interface LoginFormState {
+    email: string;
+    password: string;
+    remember: boolean;
+}
+
+export interface FormErrors {
+  name?: string;
+  email?: string;
+  password?: string;
+  agree?: string;
+}
