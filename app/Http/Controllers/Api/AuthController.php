@@ -51,7 +51,7 @@ class AuthController extends Controller
             'message' => 'User logged in successfully.',
             'user' => $user['user'],
         ], 200)
-            ->cookie('access_token', $user['access_token'], 15, '/', null, app()->isProduction(), true, false, 'Strict')
-            ->cookie('refresh_token', $user['refresh_token'], 60 * 24 * 7, '/api/v1/auth/refresh', null, app()->isProduction(), true, false, 'Strict');
+            ->cookie('access_token', $user['access_token'], 15, '/', null, $request->secure(), true, false, 'Strict')
+            ->cookie('refresh_token', $user['refresh_token'], 60 * 24 * 7, '/api/v1/auth/refresh', null, $request->secure(), true, false, 'Strict');
     }
 }
