@@ -15,10 +15,12 @@ class AttachTokenFromCookie
      */
     public function handle(Request $request, Closure $next): Response
     {
-        if (! $request->hasHeader('Authorization') && $request->cookie('access_token')) {
-            $request->headers->set('Authorization', 'Bearer ' . $request->cookie('access_token'));
+        $accessToken = $request->cookie('access_token');
+
+        if (! $request->hasHeader('Authorization') && is_string($accessToken) && $accessToken !== '') {
+            $request->headers->set('Authorization', 'Bearer '.$accessToken);
         }
-        
+
         return $next($request);
     }
 }

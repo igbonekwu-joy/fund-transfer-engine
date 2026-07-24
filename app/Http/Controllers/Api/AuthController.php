@@ -9,7 +9,7 @@ use Illuminate\Http\JsonResponse;
 
 class AuthController extends Controller
 {
-    public function __construct(private readonly AuthService $auth) { }
+    public function __construct(private readonly AuthService $auth) {}
 
     public function register(RegisterRequest $request): JsonResponse
     {
@@ -25,9 +25,9 @@ class AuthController extends Controller
             'message' => 'User registered successfully.',
             'user' => $user,
         ], 201)
-           ->cookie('access_token', $accessToken, 15, '/', null, true, true, false, 'Strict')
+            ->cookie('access_token', $accessToken, 15, '/', null, true, true, false, 'Strict')
             ->cookie('refresh_token', $refreshToken, 60 * 24 * 7, '/api/v1/refresh', null, true, true, false, 'Strict');
 
-    // cookie($name, $value, $minutes, $path, $domain, $secure, $httpOnly, $raw, $sameSite)
+        // cookie($name, $value, $minutes, $path, $domain, $secure, $httpOnly, $raw, $sameSite)
     }
 }
