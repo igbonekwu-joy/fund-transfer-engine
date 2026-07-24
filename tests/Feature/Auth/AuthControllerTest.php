@@ -142,32 +142,48 @@ it('rejects a refresh token that has already been consumed', function () {
         ->toThrow(InvalidRefreshTokenException::class, 'Invalid refresh token.');
 });
 
-// it('rotates tokens on refresh and rejects replay of the consumed refresh token', function () {
-//     $this->disableCookieEncryption();
+it('rotates tokens on refresh and rejects replay of the consumed refresh token', function () {
+    $this->disableCookieEncryption();
 
-//     $register = $this->postJson('/api/v1/auth/register', validRegisterPayload());
-//     $refreshToken = findResponseCookie($register, 'refresh_token')?->getValue();
+    $register = $this->postJson('/api/v1/auth/register', validRegisterPayload());
+    $refreshToken = findResponseCookie($register, 'refresh_token')?->getValue();
 
-//     expect($refreshToken)->not->toBeNull()->not->toBeEmpty();
+    expect($refreshToken)->not->toBeNull()->not->toBeEmpty();
 
-//     $refresh = $this->withHeader('Cookie', 'refresh_token='.rawurlencode($refreshToken))
-//         ->postJson('/api/v1/auth/refresh');
+    $refresh = $this->call(
+        'POST',
+        '/api/v1/auth/refresh',
+        cookies: ['refresh_token' => $refreshToken],
+        server: [
+            'CONTENT_TYPE' => 'application/json',
+            'HTTP_ACCEPT' => 'application/json',
+        ],
+        content: '{}',
+    );
 
-//     $refresh->assertOk();
-//     $refresh->assertJson(['message' => 'Token refreshed.']);
-//     $refresh->assertCookie('access_token');
-//     $refresh->assertCookie('refresh_token');
+    $refresh->assertOk();
+    $refresh->assertJson(['message' => 'Token refreshed.']);
+    $refresh->assertCookie('access_token');
+    $refresh->assertCookie('refresh_token');
 
-//     $replacement = findResponseCookie($refresh, 'refresh_token')?->getValue();
-//     expect($replacement)->not->toBeNull()->not->toBe($refreshToken);
+    $replacement = findResponseCookie($refresh, 'refresh_token')?->getValue();
+    expect($replacement)->not->toBeNull()->not->toBe($refreshToken);
 
-//     $user = User::firstWhere('email', 'joy@example.com');
-//     expect($user->tokens)->toHaveCount(2);
-//     expect($user->tokens->firstWhere('name', 'fundTransferRefreshToken'))->not->toBeNull();
+    $user = User::firstWhere('email', 'joy@example.com');
+    expect($user->tokens)->toHaveCount(2);
+    expect($user->tokens->firstWhere('name', 'fundTransferRefreshToken'))->not->toBeNull();
 
-//     $replay = $this->withHeader('Cookie', 'refresh_token='.rawurlencode($refreshToken))
-//         ->postJson('/api/v1/auth/refresh');
+    $replay = $this->call(
+        'POST',
+        '/api/v1/auth/refresh',
+        cookies: ['refresh_token' => $refreshToken],
+        server: [
+            'CONTENT_TYPE' => 'application/json',
+            'HTTP_ACCEPT' => 'application/json',
+        ],
+        content: '{}',
+    );
 
-//     $replay->assertUnauthorized();
-//     $replay->assertJson(['message' => 'Invalid refresh token.']);
-// });
+    $replay->assertUnauthorized();
+    $replay->assertJson(['message' => 'Invalid refresh token.']);
+});
