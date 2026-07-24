@@ -1,6 +1,8 @@
 <?php
 
+use App\Exceptions\Auth\InvalidRefreshTokenException;
 use App\Models\User;
+use App\Services\Auth\AuthService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 
@@ -87,12 +89,12 @@ it('sets the access token as a secure httpOnly cookie', function () {
 
     expect($cookie)->not->toBeNull();
     expect($cookie->isHttpOnly())->toBeTrue();
-    expect($cookie->isSecure())->toBeTrue();
+    expect($cookie->isSecure())->toBe(app()->isProduction());
     expect($cookie->getSameSite())->toBe('strict');
     expect($cookie->getPath())->toBe('/');
 });
 
-it('sets the refresh token as a secure httpOnly cookie scoped to the refresh route', function () {
+it('sets the refresh token as a secure httpOnly cookie', function () {
     $response = $this->postJson('/api/v1/auth/register', validRegisterPayload());
 
     $response->assertCookie('refresh_token');
@@ -101,9 +103,9 @@ it('sets the refresh token as a secure httpOnly cookie scoped to the refresh rou
 
     expect($cookie)->not->toBeNull();
     expect($cookie->isHttpOnly())->toBeTrue();
-    expect($cookie->isSecure())->toBeTrue();
+    expect($cookie->isSecure())->toBe(app()->isProduction());
     expect($cookie->getSameSite())->toBe('strict');
-    expect($cookie->getPath())->toBe('/api/v1/refresh');
+    expect($cookie->getPath())->toBe('/api/v1/auth/refresh');
 });
 
 it('rejects registration with a duplicate email', function () {
@@ -122,4 +124,66 @@ it('rejects registration when passwords do not match', function () {
 
     $response->assertStatus(422);
     $response->assertJsonValidationErrors('password');
+});
+
+it('rejects a refresh token that has already been consumed', function () {
+    $user = User::factory()->create();
+    $refreshToken = $user->createToken('fundTransferRefreshToken', ['refresh'], now()->addDays(7))->plainTextToken;
+
+    $authService = app(AuthService::class);
+
+    $result = $authService->refresh($refreshToken);
+
+    expect($result)->toHaveKeys(['user', 'access_token', 'refresh_token']);
+
+    // Second attempt with the SAME original token fails
+    // it was already deleted or rotated by the first call.
+    expect(fn () => $authService->refresh($refreshToken))
+        ->toThrow(InvalidRefreshTokenException::class, 'Invalid refresh token.');
+});
+
+it('rotates tokens on refresh and rejects replay of the consumed refresh token', function () {
+    $this->disableCookieEncryption();
+
+    $register = $this->postJson('/api/v1/auth/register', validRegisterPayload());
+    $refreshToken = findResponseCookie($register, 'refresh_token')?->getValue();
+
+    expect($refreshToken)->not->toBeNull()->not->toBeEmpty();
+
+    $refresh = $this->call(
+        'POST',
+        '/api/v1/auth/refresh',
+        cookies: ['refresh_token' => $refreshToken],
+        server: [
+            'CONTENT_TYPE' => 'application/json',
+            'HTTP_ACCEPT' => 'application/json',
+        ],
+        content: '{}',
+    );
+
+    $refresh->assertOk();
+    $refresh->assertJson(['message' => 'Token refreshed.']);
+    $refresh->assertCookie('access_token');
+    $refresh->assertCookie('refresh_token');
+
+    $replacement = findResponseCookie($refresh, 'refresh_token')?->getValue();
+    expect($replacement)->not->toBeNull()->not->toBe($refreshToken);
+
+    $user = User::firstWhere('email', 'joy@example.com');
+    expect($user->tokens)->toHaveCount(2);
+    expect($user->tokens->firstWhere('name', 'fundTransferRefreshToken'))->not->toBeNull();
+
+    $replay = $this->call(
+        'POST',
+        '/api/v1/auth/refresh',
+        cookies: ['refresh_token' => $refreshToken],
+        server: [
+            'CONTENT_TYPE' => 'application/json',
+            'HTTP_ACCEPT' => 'application/json',
+        ],
+        content: '{}',
+    );
+
+    $replay->assertUnauthorized();
+    $replay->assertJson(['message' => 'Invalid refresh token.']);
 });
