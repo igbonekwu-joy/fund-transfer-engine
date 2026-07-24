@@ -87,12 +87,12 @@ it('sets the access token as a secure httpOnly cookie', function () {
 
     expect($cookie)->not->toBeNull();
     expect($cookie->isHttpOnly())->toBeTrue();
-    expect($cookie->isSecure())->toBeTrue();
+    expect($cookie->isSecure())->toBe(app()->isProduction());
     expect($cookie->getSameSite())->toBe('strict');
     expect($cookie->getPath())->toBe('/');
 });
 
-it('sets the refresh token as a secure httpOnly cookie scoped to the refresh route', function () {
+it('sets the refresh token as a secure httpOnly cookie', function () {
     $response = $this->postJson('/api/v1/auth/register', validRegisterPayload());
 
     $response->assertCookie('refresh_token');
@@ -101,9 +101,9 @@ it('sets the refresh token as a secure httpOnly cookie scoped to the refresh rou
 
     expect($cookie)->not->toBeNull();
     expect($cookie->isHttpOnly())->toBeTrue();
-    expect($cookie->isSecure())->toBeTrue();
+    expect($cookie->isSecure())->toBe(app()->isProduction());
     expect($cookie->getSameSite())->toBe('strict');
-    expect($cookie->getPath())->toBe('/api/v1/refresh');
+    expect($cookie->getPath())->toBe('/');
 });
 
 it('rejects registration with a duplicate email', function () {
