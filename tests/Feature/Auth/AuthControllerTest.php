@@ -1,6 +1,8 @@
 <?php
 
+use App\Exceptions\Auth\InvalidRefreshTokenException;
 use App\Models\User;
+use App\Services\Auth\AuthService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 
@@ -122,6 +124,22 @@ it('rejects registration when passwords do not match', function () {
 
     $response->assertStatus(422);
     $response->assertJsonValidationErrors('password');
+});
+
+it('rejects a refresh token that has already been consumed', function () {
+    $user = User::factory()->create();
+    $refreshToken = $user->createToken('fundTransferRefreshToken', ['refresh'], now()->addDays(7))->plainTextToken;
+
+    $authService = app(AuthService::class);
+
+    $result = $authService->refresh($refreshToken);
+
+    expect($result)->toHaveKeys(['user', 'access_token', 'refresh_token']);
+
+    // Second attempt with the SAME original token fails
+    // it was already deleted or rotated by the first call.
+    expect(fn () => $authService->refresh($refreshToken))
+        ->toThrow(InvalidRefreshTokenException::class, 'Invalid refresh token.');
 });
 
 // it('rotates tokens on refresh and rejects replay of the consumed refresh token', function () {
