@@ -4,6 +4,7 @@ namespace App\Services\Auth;
 
 use App\Exceptions\Auth\InvalidRefreshTokenException;
 use App\Models\User;
+use Illuminate\Support\Facades\DB;
 use Laravel\Sanctum\PersonalAccessToken;
 
 class AuthService
@@ -27,7 +28,7 @@ class AuthService
     }
 
     /**
-     * @return array{user: User, access_token: string}
+     * @return array{user: User, access_token: string, refresh_token: string}
      */
     public function refresh(?string $refreshToken): array
     {
@@ -53,11 +54,15 @@ class AuthService
             throw new InvalidRefreshTokenException('Invalid refresh token.');
         }
 
-        $user->tokens()->where('name', 'fundTransferAuthToken')->delete();
+        return DB::transaction(function () use ($user, $tokenModel) {
+            $tokenModel->delete();
+            $user->tokens()->where('name', 'fundTransferAuthToken')->delete();
 
-        return [
-            'user' => $user,
-            'access_token' => $user->createToken('fundTransferAuthToken', ['*'], now()->addMinutes(15))->plainTextToken,
-        ];
+            return [
+                'user' => $user,
+                'access_token' => $user->createToken('fundTransferAuthToken', ['*'], now()->addMinutes(15))->plainTextToken,
+                'refresh_token' => $user->createToken('fundTransferRefreshToken', ['refresh'], now()->addDays(7))->plainTextToken,
+            ];
+        });
     }
 }

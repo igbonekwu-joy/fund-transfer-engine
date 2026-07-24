@@ -25,7 +25,7 @@ class AuthController extends Controller
             'user' => $result['user'],
         ], 201)
             ->cookie('access_token', $result['access_token'], 15, '/', null, app()->isProduction(), true, false, 'Strict')
-            ->cookie('refresh_token', $result['refresh_token'], 60 * 24 * 7, '/', null, app()->isProduction(), true, false, 'Strict');
+            ->cookie('refresh_token', $result['refresh_token'], 60 * 24 * 7, '/api/v1/auth/refresh', null, app()->isProduction(), true, false, 'Strict');
     }
 
     public function refresh(Request $request): JsonResponse
@@ -35,6 +35,7 @@ class AuthController extends Controller
         $result = $this->auth->refresh(is_string($refreshToken) ? $refreshToken : null);
 
         return response()->json(['message' => 'Token refreshed.'])
-            ->cookie('access_token', $result['access_token'], 15, '/', null, true, true, false, 'Strict');
+            ->cookie('access_token', $result['access_token'], 15, '/', null, app()->isProduction(), true, false, 'Strict')
+            ->cookie('refresh_token', $result['refresh_token'], 60 * 24 * 7, '/api/v1/auth/refresh', null, app()->isProduction(), true, false, 'Strict');
     }
 }
