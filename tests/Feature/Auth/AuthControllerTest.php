@@ -35,7 +35,7 @@ it('registers a user and returns a 201 with the expected json shape', function (
     $response->assertCreated();
     $response->assertJsonStructure([
         'message',
-        'user' => ['id', 'name', 'email'],
+        'user' => ['name', 'email'],
     ]);
     $response->assertJson([
         'message' => 'User registered successfully.',

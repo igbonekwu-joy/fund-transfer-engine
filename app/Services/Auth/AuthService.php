@@ -2,6 +2,7 @@
 
 namespace App\Services\Auth;
 
+use App\Exceptions\Auth\InvalidCredentialsException;
 use App\Exceptions\Auth\InvalidRefreshTokenException;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
@@ -10,7 +11,7 @@ use Laravel\Sanctum\PersonalAccessToken;
 class AuthService
 {
     /**
-     * @return array{user: User, access_token: string, refresh_token: string}
+     * @return array{user: array<string, string>, access_token: string, refresh_token: string}
      */
     public function register(string $name, string $email, string $password): array
     {
@@ -21,7 +22,7 @@ class AuthService
         ]);
 
         return [
-            'user' => $user,
+            'user' => $user->toApiArray(),
             'access_token' => $user->createToken('fundTransferAuthToken', ['*'], now()->addMinutes(15))->plainTextToken,
             'refresh_token' => $user->createToken('fundTransferRefreshToken', ['refresh'], now()->addDays(7))->plainTextToken,
         ];
@@ -81,5 +82,23 @@ class AuthService
                 'refresh_token' => $user->createToken('fundTransferRefreshToken', ['refresh'], now()->addDays(7))->plainTextToken,
             ];
         });
+    }
+
+    /**
+     * @return array{user: array<string, string>, access_token: string, refresh_token: string}
+     */
+    public function login(string $email, string $password): array
+    {
+        $user = User::where('email', $email)->first();
+
+        if (! $user || ! password_verify($password, $user->password)) {
+            throw new InvalidCredentialsException('Invalid credentials.');
+        }
+
+        return [
+            'user' => $user->toApiArray(),
+            'access_token' => $user->createToken('fundTransferAuthToken', ['*'], now()->addMinutes(15))->plainTextToken,
+            'refresh_token' => $user->createToken('fundTransferRefreshToken', ['refresh'], now()->addDays(7))->plainTextToken,
+        ];
     }
 }
