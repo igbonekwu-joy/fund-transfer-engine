@@ -36,26 +36,43 @@ class AuthService
             throw new InvalidRefreshTokenException('Refresh token not found.');
         }
 
-        $tokenModel = PersonalAccessToken::findToken($refreshToken);
-
-        if (! $tokenModel || ! $tokenModel->can('refresh')) {
+        if (! str_contains($refreshToken, '|')) {
             throw new InvalidRefreshTokenException('Invalid refresh token.');
         }
 
-        if ($tokenModel->expires_at && $tokenModel->expires_at->isPast()) {
-            $tokenModel->delete();
+        [$id, $plainToken] = explode('|', $refreshToken, 2);
 
-            throw new InvalidRefreshTokenException('Refresh token has expired.');
-        }
+        return DB::transaction(function () use ($id, $plainToken) {
+            $tokenModel = PersonalAccessToken::where('id', $id)
+                ->lockForUpdate()
+                ->first();
 
-        $user = $tokenModel->tokenable;
+            if (! $tokenModel || ! hash_equals($tokenModel->token, hash('sha256', $plainToken))) {
+                throw new InvalidRefreshTokenException('Invalid refresh token.');
+            }
 
-        if (! $user instanceof User) {
-            throw new InvalidRefreshTokenException('Invalid refresh token.');
-        }
+            if (! $tokenModel->can('refresh')) {
+                throw new InvalidRefreshTokenException('Invalid refresh token.');
+            }
 
-        return DB::transaction(function () use ($user, $tokenModel) {
-            $tokenModel->delete();
+            if ($tokenModel->expires_at && $tokenModel->expires_at->isPast()) {
+                $tokenModel->delete();
+
+                throw new InvalidRefreshTokenException('Refresh token has expired.');
+            }
+
+            $user = $tokenModel->tokenable;
+
+            if (! $user instanceof User) {
+                throw new InvalidRefreshTokenException('Invalid refresh token.');
+            }
+
+            $deleted = PersonalAccessToken::where('id', $tokenModel->id)->delete();
+
+            if ($deleted !== 1) {
+                throw new InvalidRefreshTokenException('Refresh token has already been used.');
+            }
+
             $user->tokens()->where('name', 'fundTransferAuthToken')->delete();
 
             return [
