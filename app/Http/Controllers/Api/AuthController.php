@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Auth\LoginRequest;
 use App\Http\Requests\Auth\RegisterRequest;
 use App\Services\Auth\AuthService;
 use Illuminate\Http\JsonResponse;
@@ -37,5 +38,20 @@ class AuthController extends Controller
         return response()->json(['message' => 'Token refreshed.'])
             ->cookie('access_token', $result['access_token'], 15, '/', null, app()->isProduction(), true, false, 'Strict')
             ->cookie('refresh_token', $result['refresh_token'], 60 * 24 * 7, '/api/v1/auth/refresh', null, app()->isProduction(), true, false, 'Strict');
+    }
+
+    public function login(LoginRequest $request): JsonResponse
+    {
+        $email = $request->string('email')->toString();
+        $password = $request->string('password')->toString();
+
+        $user = $this->auth->login($email, $password);
+
+        return response()->json([
+            'message' => 'User logged in successfully.',
+            'user' => $user['user'],
+        ], 200)
+            ->cookie('access_token', $user['access_token'], 15, '/', null, app()->isProduction(), true, false, 'Strict')
+            ->cookie('refresh_token', $user['refresh_token'], 60 * 24 * 7, '/api/v1/auth/refresh', null, app()->isProduction(), true, false, 'Strict');
     }
 }
