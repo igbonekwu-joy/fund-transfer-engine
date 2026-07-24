@@ -64,6 +64,9 @@ class User extends Authenticatable
             : $initials;
     }
 
+    /**
+     * @return array<string, string>
+     */
     public function toApiArray(): array
     {
         return [
