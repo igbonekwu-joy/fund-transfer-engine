@@ -3,8 +3,9 @@
 namespace App\Services\Auth;
 
 use App\Exceptions\Auth\InvalidCredentialsException;
-use App\Exceptions\Auth\InvalidRefreshTokenException;
+use App\Exceptions\Auth\UnauthenticatedException;
 use App\Models\User;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Laravel\Sanctum\PersonalAccessToken;
 
@@ -34,44 +35,53 @@ class AuthService
     public function refresh(?string $refreshToken): array
     {
         if ($refreshToken === null || $refreshToken === '') {
-            throw new InvalidRefreshTokenException('Refresh token not found.');
+            throw new UnauthenticatedException('Refresh token not found.');
         }
 
         if (! str_contains($refreshToken, '|')) {
-            throw new InvalidRefreshTokenException('Invalid refresh token.');
+            throw new UnauthenticatedException('Invalid refresh token.');
         }
 
         [$id, $plainToken] = explode('|', $refreshToken, 2);
 
-        return DB::transaction(function () use ($id, $plainToken) {
+        $tokenModel = PersonalAccessToken::find($id);
+
+        if (! $tokenModel || ! hash_equals($tokenModel->token, hash('sha256', $plainToken))) {
+            throw new UnauthenticatedException('Invalid refresh token.');
+        }
+
+        if (! $tokenModel->can('refresh')) {
+            throw new UnauthenticatedException('Invalid refresh token.');
+        }
+
+        if ($tokenModel->expires_at && $tokenModel->expires_at->isPast()) {
+            // Committed immediately, no open transaction to roll it back
+            $tokenModel->delete();
+
+            throw new UnauthenticatedException('Refresh token has expired.');
+        }
+
+        return DB::transaction(function () use ($id) {
             $tokenModel = PersonalAccessToken::where('id', $id)
                 ->lockForUpdate()
                 ->first();
 
-            if (! $tokenModel || ! hash_equals($tokenModel->token, hash('sha256', $plainToken))) {
-                throw new InvalidRefreshTokenException('Invalid refresh token.');
-            }
-
-            if (! $tokenModel->can('refresh')) {
-                throw new InvalidRefreshTokenException('Invalid refresh token.');
-            }
-
-            if ($tokenModel->expires_at && $tokenModel->expires_at->isPast()) {
-                $tokenModel->delete();
-
-                throw new InvalidRefreshTokenException('Refresh token has expired.');
+            // Re-check under lock in case it was deleted/expired between the
+            // check above and acquiring this lock (race condition guard)
+            if (! $tokenModel) {
+                throw new UnauthenticatedException('Refresh token has already been used.');
             }
 
             $user = $tokenModel->tokenable;
 
             if (! $user instanceof User) {
-                throw new InvalidRefreshTokenException('Invalid refresh token.');
+                throw new UnauthenticatedException('Invalid refresh token.');
             }
 
             $deleted = PersonalAccessToken::where('id', $tokenModel->id)->delete();
 
             if ($deleted !== 1) {
-                throw new InvalidRefreshTokenException('Refresh token has already been used.');
+                throw new UnauthenticatedException('Refresh token has already been used.');
             }
 
             $user->tokens()->where('name', 'fundTransferAuthToken')->delete();
@@ -100,5 +110,19 @@ class AuthService
             'access_token' => $user->createToken('fundTransferAuthToken', ['*'], now()->addMinutes(15))->plainTextToken,
             'refresh_token' => $user->createToken('fundTransferRefreshToken', ['refresh'], now()->addDays(7))->plainTextToken,
         ];
+    }
+
+    public function logout(Request $request): void
+    {
+        $user = $request->user();
+        $currentToken = $request->user()->currentAccessToken();
+
+        DB::transaction(function () use ($user, $currentToken) {
+            $currentToken->delete();
+
+            $user->tokens()
+                ->where('name', 'fundTransferRefreshToken')
+                ->delete();
+        });
     }
 }
