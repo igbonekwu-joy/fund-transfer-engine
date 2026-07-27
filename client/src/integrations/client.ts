@@ -12,7 +12,7 @@ class LaravelClient {
                 'Content-Type': 'application/json',
                 'Accept': 'application/json',
             },
-            timeout: 3000000, // 30 seconds timeout
+            timeout: 30000, // 30 seconds timeout
             withCredentials: false, // Don't send cookies by default
         });
 
@@ -79,19 +79,19 @@ class LaravelClient {
         }
     }
 
-    async signUp(email: string, password: string, confirmPassword: string, name: string): Promise<{ user: string[]; token: string; message: string; }> {
-        const response = await this.request<{ user: string[]; token: string; message: string }>('/auth/register', {
-            method: 'POST',
-            data: {
-                name: name,
-                email,
-                password,
-                password_confirmation: confirmPassword,
-            },
-        });
+    // async signUp(email: string, password: string, confirmPassword: string, name: string): Promise<{ user: string[]; token: string; message: string; }> {
+    //     const response = await this.request<{ user: string[]; token: string; message: string }>('/auth/register', {
+    //         method: 'POST',
+    //         data: {
+    //             name: name,
+    //             email,
+    //             password,
+    //             password_confirmation: confirmPassword,
+    //         },
+    //     });
 
-        return response;
-    }
+    //     return response;
+    // }
 
 }
 
