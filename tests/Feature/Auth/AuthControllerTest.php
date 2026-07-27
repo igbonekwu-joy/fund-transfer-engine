@@ -213,3 +213,13 @@ it('never allows more than maxAttempts concurrent logins through the sliding win
 
     expect($allowedCount)->toBeLessThanOrEqual($maxAttempts);
 });
+
+it('does not throw a TypeError when email is submitted as an array', function () {
+    $response = $this->postJson('/api/v1/auth/login', [
+        'email' => ['a@example.com', 'b@example.com'],
+        'password' => 'password123',
+    ]);
+
+    $response->assertStatus(422);
+    $response->assertJsonMissing(['message' => 'Server Error']);
+});

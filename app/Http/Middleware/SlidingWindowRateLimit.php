@@ -124,6 +124,10 @@ class SlidingWindowRateLimit
         // and one attacker can't rotate emails to dodge an IP-only limit.
         $identifier = $request->input('email', 'unknown');
 
+        $identifier = is_string($identifier) && $identifier !== ''
+            ? $identifier
+            : 'invalid';
+
         return [
             'ip' => 'login_rate_limit:ip:'.$request->ip(),
             'email' => 'login_rate_limit:email:'.sha1($identifier),
