@@ -5,6 +5,7 @@ use App\Models\User;
 use App\Services\Auth\AuthService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
+use Symfony\Component\Process\Process;
 
 uses(RefreshDatabase::class);
 
@@ -186,4 +187,54 @@ it('rotates tokens on refresh and rejects replay of the consumed refresh token',
 
     $replay->assertUnauthorized();
     $replay->assertJson(['message' => 'Invalid refresh token.']);
+});
+
+it('never allows more than maxAttempts concurrent logins through the sliding window', function () {
+    $ipMax = 10;
+    $emailMax = 3;
+    $processCount = 10;
+    $uniqueKey = 'race-test-'.bin2hex(random_bytes(6)).'-'.now()->timestamp;
+
+    $processes = [];
+
+    for ($i = 0; $i < $processCount; $i++) {
+        $process = new Process([
+            'php', base_path('artisan'), 'probe:rate-limit', $uniqueKey, (string) $ipMax, (string) $emailMax, '60',
+        ]);
+        $process->start();
+        $processes[] = $process;
+    }
+
+    foreach ($processes as $process) {
+        $process->wait();
+    }
+
+    foreach ($processes as $index => $process) {
+        expect($process->isSuccessful())->toBeTrue(
+            "Probe process #{$index} failed with exit code {$process->getExitCode()}.\n"
+            ."STDOUT: {$process->getOutput()}\n"
+            ."STDERR: {$process->getErrorOutput()}"
+        );
+    }
+
+    $allowedCount = collect($processes)
+        ->filter(fn (Process $p) => trim($p->getOutput()) === 'ALLOWED')
+        ->count();
+
+    $blockedCount = collect($processes)
+        ->filter(fn (Process $p) => trim($p->getOutput()) === 'BLOCKED')
+        ->count();
+
+    expect($allowedCount)->toBe($emailMax);
+    expect($blockedCount)->toBe($processCount - $emailMax);
+});
+
+it('does not throw a TypeError when email is submitted as an array', function () {
+    $response = $this->postJson('/api/v1/auth/login', [
+        'email' => ['a@example.com', 'b@example.com'],
+        'password' => 'password123',
+    ]);
+
+    $response->assertStatus(422);
+    $response->assertJsonMissing(['message' => 'Server Error']);
 });
