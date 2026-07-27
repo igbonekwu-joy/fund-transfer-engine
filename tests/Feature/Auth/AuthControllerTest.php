@@ -209,11 +209,24 @@ it('never allows more than maxAttempts concurrent logins through the sliding win
         $process->wait();
     }
 
+    foreach ($processes as $index => $process) {
+        expect($process->isSuccessful())->toBeTrue(
+            "Probe process #{$index} failed with exit code {$process->getExitCode()}.\n"
+            ."STDOUT: {$process->getOutput()}\n"
+            ."STDERR: {$process->getErrorOutput()}"
+        );
+    }
+
     $allowedCount = collect($processes)
         ->filter(fn (Process $p) => trim($p->getOutput()) === 'ALLOWED')
         ->count();
 
-    expect($allowedCount)->toBeLessThanOrEqual($emailMax);
+    $blockedCount = collect($processes)
+        ->filter(fn (Process $p) => trim($p->getOutput()) === 'BLOCKED')
+        ->count();
+
+    expect($allowedCount)->toBe($emailMax);
+    expect($blockedCount)->toBe($processCount - $emailMax);
 });
 
 it('does not throw a TypeError when email is submitted as an array', function () {

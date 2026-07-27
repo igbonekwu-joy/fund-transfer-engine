@@ -140,11 +140,11 @@ class SlidingWindowRateLimit
             ? $identifier
             : 'invalid';
 
-        $tag = sha1($request->ip() . '|' . $identifier);
+        $tag = sha1($request->ip().'|'.$identifier);
 
         return [
-            'ip' => 'login_rate_limit:{' . $tag . '}:ip',
-            'email' => 'login_rate_limit:{' . $tag . '}:email',
+            'ip' => 'login_rate_limit:{'.$tag.'}:ip',
+            'email' => 'login_rate_limit:{'.$tag.'}:email',
         ];
     }
 }
