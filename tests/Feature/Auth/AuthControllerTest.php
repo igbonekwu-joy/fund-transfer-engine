@@ -190,14 +190,16 @@ it('rotates tokens on refresh and rejects replay of the consumed refresh token',
 });
 
 it('never allows more than maxAttempts concurrent logins through the sliding window', function () {
-    $maxAttempts = 3;
+    $ipMax = 10;
+    $emailMax = 3;
     $processCount = 10;
+    $uniqueKey = 'race-test-'.bin2hex(random_bytes(6)).'-'.now()->timestamp;
 
     $processes = [];
 
     for ($i = 0; $i < $processCount; $i++) {
         $process = new Process([
-            'php', base_path('artisan'), 'probe:rate-limit', 'race-test-key', (string) $maxAttempts, '60',
+            'php', base_path('artisan'), 'probe:rate-limit', $uniqueKey, (string) $ipMax, (string) $emailMax, '60',
         ]);
         $process->start();
         $processes[] = $process;
@@ -211,7 +213,7 @@ it('never allows more than maxAttempts concurrent logins through the sliding win
         ->filter(fn (Process $p) => trim($p->getOutput()) === 'ALLOWED')
         ->count();
 
-    expect($allowedCount)->toBeLessThanOrEqual($maxAttempts);
+    expect($allowedCount)->toBeLessThanOrEqual($emailMax);
 });
 
 it('does not throw a TypeError when email is submitted as an array', function () {
