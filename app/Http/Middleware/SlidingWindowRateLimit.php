@@ -54,7 +54,7 @@ class SlidingWindowRateLimit
      */
     public function handle(Request $request, Closure $next, int $ipMaxAttempts = 10, int $emailMaxAttempts = 3, int $windowSeconds = 60): Response
     {
-        $keys = $this->resolveKey($request);
+        $keys = $this->resolveKeys($request);
         $now = microtime(true);
         $member = (string) $now.'-'.bin2hex(random_bytes(4));
 
@@ -74,7 +74,6 @@ class SlidingWindowRateLimit
 
             return $response;
         }
-
 
         $response = $next($request);
         $response->headers->set('X-RateLimit-Limit', (string) $emailMaxAttempts);
@@ -116,15 +115,18 @@ class SlidingWindowRateLimit
         // return $response;
     }
 
-    private function resolveKey(Request $request): array
+    /**
+     * @return array{ip: string, email: string}
+     */
+    private function resolveKeys(Request $request): array
     {
         // Rate limit by IP and email combo, so one IP can't lock out unrelated accounts,
         // and one attacker can't rotate emails to dodge an IP-only limit.
         $identifier = $request->input('email', 'unknown');
 
         return [
-            'ip' => 'login_rate_limit:ip:' . $request->ip(),
-            'email' => 'login_rate_limit:email:' . sha1($identifier),
+            'ip' => 'login_rate_limit:ip:'.$request->ip(),
+            'email' => 'login_rate_limit:email:'.sha1($identifier),
         ];
-        }
+    }
 }
