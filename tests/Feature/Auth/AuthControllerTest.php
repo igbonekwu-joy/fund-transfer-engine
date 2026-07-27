@@ -5,6 +5,7 @@ use App\Models\User;
 use App\Services\Auth\AuthService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
+use Symfony\Component\Process\Process;
 
 uses(RefreshDatabase::class);
 
@@ -186,4 +187,29 @@ it('rotates tokens on refresh and rejects replay of the consumed refresh token',
 
     $replay->assertUnauthorized();
     $replay->assertJson(['message' => 'Invalid refresh token.']);
+});
+
+it('never allows more than maxAttempts concurrent logins through the sliding window', function () {
+    $maxAttempts = 3;
+    $processCount = 10;
+
+    $processes = [];
+
+    for ($i = 0; $i < $processCount; $i++) {
+        $process = new Process([
+            'php', base_path('artisan'), 'probe:rate-limit', 'race-test-key', (string) $maxAttempts, '60',
+        ]);
+        $process->start();
+        $processes[] = $process;
+    }
+
+    foreach ($processes as $process) {
+        $process->wait();
+    }
+
+    $allowedCount = collect($processes)
+        ->filter(fn (Process $p) => trim($p->getOutput()) === 'ALLOWED')
+        ->count();
+
+    expect($allowedCount)->toBeLessThanOrEqual($maxAttempts);
 });

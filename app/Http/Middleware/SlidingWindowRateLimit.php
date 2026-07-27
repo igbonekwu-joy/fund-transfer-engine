@@ -9,6 +9,31 @@ use Symfony\Component\HttpFoundation\Response;
 
 class SlidingWindowRateLimit
 {
+    private const LUA_SCRIPT = <<<'LUA'
+        local key = KEYS[1]
+        local now = tonumber(ARGV[1])
+        local window = tonumber(ARGV[2])
+        local max_attempts = tonumber(ARGV[3])
+        local member = ARGV[4]
+
+        redis.call('ZREMRANGEBYSCORE', key, '0', tostring(now - window))
+        local count = redis.call('ZCARD', key)
+
+        if count >= max_attempts then
+            local oldest = redis.call('ZRANGE', key, 0, 0, 'WITHSCORES')
+            local oldest_score = now
+            if oldest[2] then
+                oldest_score = tonumber(oldest[2])
+            end
+            return {0, count, tostring(oldest_score)}
+        end
+
+        redis.call('ZADD', key, tostring(now), member)
+        redis.call('EXPIRE', key, window)
+
+        return {1, count, '0'}
+    LUA;
+
     /**
      * Handle an incoming request.
      *
@@ -18,18 +43,13 @@ class SlidingWindowRateLimit
     {
         $key = $this->resolveKey($request);
         $now = microtime(true);
-        $windowStart = $now - $windowSeconds;
-        $windowStartString = (string) $windowStart;
+        $member = (string) $now.'-'.bin2hex(random_bytes(4));
 
-        Redis::zremrangebyscore($key, '0', $windowStartString); // deletes every member whose score is less than or equal to the window start time
+        // @phpstan-ignore-next-line arguments.count, argument.type (Laravel's Redis connection wrapper normalizes this call at runtime; the phpredis-shaped stub Larastan checks against doesn't reflect that translation layer)
+        [$allowed, $attempts, $oldestScore] = Redis::eval(self::LUA_SCRIPT, 1, $key, (string) $now, (string) $windowSeconds, (string) $maxAttempts, $member);
 
-        $attempts = Redis::zcard($key); // count the members left in the sorted set after removing the old ones
-
-        if ($attempts >= $maxAttempts) {
-            $oldestInWindow = Redis::zrange($key, 0, 0, ['withscores' => true]); // fetches the oldest member and its score. 0, 0 means fetch the first one
-            $retryAfter = $oldestInWindow
-                ? (int) ceil($windowSeconds - ($now - (float) array_values($oldestInWindow)[0]))
-                : $windowSeconds;
+        if (! $allowed) {
+            $retryAfter = (int) ceil($windowSeconds - ($now - (float) $oldestScore));
 
             $response = response()->json([
                 'message' => 'Too many login attempts. Please try again shortly.',
@@ -42,14 +62,44 @@ class SlidingWindowRateLimit
             return $response;
         }
 
-        Redis::zadd($key, $now, (string) $now.'-'.bin2hex(random_bytes(4)));
-        Redis::expire($key, $windowSeconds);
-
         $response = $next($request);
         $response->headers->set('X-RateLimit-Limit', (string) $maxAttempts);
         $response->headers->set('X-RateLimit-Remaining', (string) max($maxAttempts - $attempts - 1, 0));
 
         return $response;
+
+        // $windowStart = $now - $windowSeconds;
+        // $windowStartString = (string) $windowStart;
+
+        // Redis::zremrangebyscore($key, '0', $windowStartString); // deletes every member whose score is less than or equal to the window start time
+
+        // $attempts = Redis::zcard($key); // count the members left in the sorted set after removing the old ones
+
+        // if ($attempts >= $maxAttempts) {
+        //     $oldestInWindow = Redis::zrange($key, 0, 0, ['withscores' => true]); // fetches the oldest member and its score. 0, 0 means fetch the first one
+        //     $retryAfter = $oldestInWindow
+        //         ? (int) ceil($windowSeconds - ($now - (float) array_values($oldestInWindow)[0]))
+        //         : $windowSeconds;
+
+        //     $response = response()->json([
+        //         'message' => 'Too many login attempts. Please try again shortly.',
+        //     ], 429);
+
+        //     $response->headers->set('Retry-After', (string) max($retryAfter, 1));
+        //     $response->headers->set('X-RateLimit-Limit', (string) $maxAttempts);
+        //     $response->headers->set('X-RateLimit-Remaining', '0');
+
+        //     return $response;
+        // }
+
+        // Redis::zadd($key, $now, $member);
+        // Redis::expire($key, $windowSeconds);
+
+        // $response = $next($request);
+        // $response->headers->set('X-RateLimit-Limit', (string) $maxAttempts);
+        // $response->headers->set('X-RateLimit-Remaining', (string) max($maxAttempts - $attempts - 1, 0));
+
+        // return $response;
     }
 
     private function resolveKey(Request $request): string
