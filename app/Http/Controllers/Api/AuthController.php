@@ -54,4 +54,11 @@ class AuthController extends Controller
             ->cookie('access_token', $user['access_token'], 15, '/', null, $request->secure(), true, false, 'Strict')
             ->cookie('refresh_token', $user['refresh_token'], 60 * 24 * 7, '/api/v1/auth/refresh', null, $request->secure(), true, false, 'Strict');
     }
+
+    public function logout(Request $request): JsonResponse
+    {
+        $this->auth->logout($request);
+
+        return response()->json(['message' => 'User logged out successfully.']);
+    }
 }

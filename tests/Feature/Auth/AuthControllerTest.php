@@ -1,6 +1,6 @@
 <?php
 
-use App\Exceptions\Auth\InvalidRefreshTokenException;
+use App\Exceptions\Auth\UnauthenticatedException;
 use App\Models\User;
 use App\Services\Auth\AuthService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -140,7 +140,7 @@ it('rejects a refresh token that has already been consumed', function () {
     // Second attempt with the SAME original token fails
     // it was already deleted or rotated by the first call.
     expect(fn () => $authService->refresh($refreshToken))
-        ->toThrow(InvalidRefreshTokenException::class, 'Invalid refresh token.');
+        ->toThrow(UnauthenticatedException::class, 'Invalid refresh token.');
 });
 
 it('rotates tokens on refresh and rejects replay of the consumed refresh token', function () {
