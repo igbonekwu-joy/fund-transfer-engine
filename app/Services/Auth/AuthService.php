@@ -44,23 +44,32 @@ class AuthService
 
         [$id, $plainToken] = explode('|', $refreshToken, 2);
 
-        return DB::transaction(function () use ($id, $plainToken) {
+        $tokenModel = PersonalAccessToken::find($id);
+
+        if (! $tokenModel || ! hash_equals($tokenModel->token, hash('sha256', $plainToken))) {
+            throw new UnauthenticatedException('Invalid refresh token.');
+        }
+
+        if (! $tokenModel->can('refresh')) {
+            throw new UnauthenticatedException('Invalid refresh token.');
+        }
+
+        if ($tokenModel->expires_at && $tokenModel->expires_at->isPast()) {
+            // Committed immediately, no open transaction to roll it back
+            $tokenModel->delete();
+
+            throw new UnauthenticatedException('Refresh token has expired.');
+        }
+
+        return DB::transaction(function () use ($id) {
             $tokenModel = PersonalAccessToken::where('id', $id)
                 ->lockForUpdate()
                 ->first();
 
-            if (! $tokenModel || ! hash_equals($tokenModel->token, hash('sha256', $plainToken))) {
-                throw new UnauthenticatedException('Invalid refresh token.');
-            }
-
-            if (! $tokenModel->can('refresh')) {
-                throw new UnauthenticatedException('Invalid refresh token.');
-            }
-
-            if ($tokenModel->expires_at && $tokenModel->expires_at->isPast()) {
-                $tokenModel->delete();
-
-                throw new UnauthenticatedException('Refresh token has expired.');
+            // Re-check under lock in case it was deleted/expired between the
+            // check above and acquiring this lock (race condition guard)
+            if (! $tokenModel) {
+                throw new UnauthenticatedException('Refresh token has already been used.');
             }
 
             $user = $tokenModel->tokenable;
@@ -106,11 +115,14 @@ class AuthService
     public function logout(Request $request): void
     {
         $user = $request->user();
+        $currentToken = $request->user()->currentAccessToken();
 
-        $request->user()->currentAccessToken()->delete();
+        DB::transaction(function () use ($user, $currentToken) {
+            $currentToken->delete();
 
-        $user->tokens()
-            ->where('name', 'fundTransferRefreshToken')
-            ->delete();
+            $user->tokens()
+                ->where('name', 'fundTransferRefreshToken')
+                ->delete();
+        });
     }
 }
