@@ -25,17 +25,29 @@ class SlidingWindowRateLimit
         local email_count = redis.call('ZCARD', email_key)
 
         if ip_count >= ip_max or email_count >= email_max then
-            local ip_oldest = redis.call('ZRANGE', ip_key, 0, 0, 'WITHSCORES')
-            local email_oldest = redis.call('ZRANGE', email_key, 0, 0, 'WITHSCORES')
+            local latest_expiry = now
 
-            local oldest_score = now
-            if ip_count >= ip_max and ip_oldest[2] then
-                oldest_score = tonumber(ip_oldest[2])
-            elseif email_oldest[2] then
-                oldest_score = tonumber(email_oldest[2])
+            if ip_count >= ip_max then
+                local ip_oldest = redis.call('ZRANGE', ip_key, 0, 0, 'WITHSCORES')
+                if ip_oldest[2] then
+                    local ip_expiry = tonumber(ip_oldest[2]) + window
+                    if ip_expiry > latest_expiry then
+                        latest_expiry = ip_expiry
+                    end
+                end
             end
 
-            return {0, ip_count, email_count, tostring(oldest_score)}
+            if email_count >= email_max then
+                local email_oldest = redis.call('ZRANGE', email_key, 0, 0, 'WITHSCORES')
+                if email_oldest[2] then
+                    local email_expiry = tonumber(email_oldest[2]) + window
+                    if email_expiry > latest_expiry then
+                        latest_expiry = email_expiry
+                    end
+                end
+            end
+
+            return {0, ip_count, email_count, tostring(latest_expiry)}
         end
 
         redis.call('ZADD', ip_key, tostring(now), member)
@@ -62,7 +74,7 @@ class SlidingWindowRateLimit
         [$allowed, $ipAttempts, $emailAttempts, $oldestScore] = Redis::eval(self::LUA_SCRIPT, 2, $keys['ip'], $keys['email'], (string) $now, (string) $windowSeconds, (string) $ipMaxAttempts, (string) $emailMaxAttempts, $member);
 
         if (! $allowed) {
-            $retryAfter = (int) ceil($windowSeconds - ($now - (float) $oldestScore));
+            $retryAfter = (int) ceil((float) $oldestScore - $now);
 
             $response = response()->json([
                 'message' => 'Too many login attempts. Please try again shortly.',
@@ -128,9 +140,11 @@ class SlidingWindowRateLimit
             ? $identifier
             : 'invalid';
 
+        $tag = sha1($request->ip() . '|' . $identifier);
+
         return [
-            'ip' => 'login_rate_limit:ip:'.$request->ip(),
-            'email' => 'login_rate_limit:email:'.sha1($identifier),
+            'ip' => 'login_rate_limit:{' . $tag . '}:ip',
+            'email' => 'login_rate_limit:{' . $tag . '}:email',
         ];
     }
 }
