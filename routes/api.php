@@ -5,7 +5,7 @@ use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
     Route::prefix('auth')->group(function () {
-        Route::post('login', [AuthController::class, 'login'])->middleware('sliding.throttle:3,60');
+        Route::post('login', [AuthController::class, 'login'])->middleware('sliding.throttle:10,3,60');
         Route::post('refresh', [AuthController::class, 'refresh']);
         Route::post('register', [AuthController::class, 'register']);
     });
