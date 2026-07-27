@@ -5,7 +5,7 @@ import TextField from '@/components/auth/TextField';
 import PasswordField from '@/components/auth/PasswordField';
 import OAuthRow from '@/components/auth/OAuth';
 import Icon from '@/components/Icon';
-import type { FormErrors, LoginFormState } from '@/types';
+import type { FormErrors, LoginFormState } from '@/integrations/types';
 
 const Login: FC = () => {
   const navigate = useNavigate();

@@ -5,7 +5,7 @@ import TextField from '@/components/auth/TextField';
 import PasswordField from '@/components/auth/PasswordField';
 import OAuthRow from '@/components/auth/OAuth';
 import Icon from '@/components/Icon';
-import type { FormErrors, FormState } from '@/types';
+import type { FormErrors, FormState } from '@/integrations/types';
 
 const Register: FC = () => {
   const navigate = useNavigate();
