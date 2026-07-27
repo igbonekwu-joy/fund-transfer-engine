@@ -1,4 +1,4 @@
-import type { Transaction, BudgetGoal, Bill, SpendPoint, NavItem } from '@/types';
+import type { Transaction, BudgetGoal, Bill, SpendPoint, NavItem } from '@/integrations/types';
 
 export const primaryNav: NavItem[] = [
   { id: 'overview', label: 'Overview', icon: 'grid' },
