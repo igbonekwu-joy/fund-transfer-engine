@@ -2,6 +2,7 @@ import type { FC } from 'react';
 import Icon from '../Icon';
 
 const AuthBrandPanel: FC = () => {
+    const appName = import.meta.env.VITE_APP_NAME;
   return (
     <div className="auth-brand">
       <div className="auth-brand-top">
@@ -9,7 +10,7 @@ const AuthBrandPanel: FC = () => {
           <div className="brand-mark">
             <Icon name="diamond" stroke="#08251A" strokeWidth={2} />
           </div>
-          <div className="brand-name">Kori</div>
+          <div className="brand-name">{appName}</div>
         </div>
       </div>
 
@@ -36,8 +37,8 @@ const AuthBrandPanel: FC = () => {
 
       <div className="auth-brand-bottom">
         <div className="auth-brand-quote">
-          "Kori replaced three apps I used to juggle just to see where my money went."
-          <b>— Amaka O., Kori customer</b>
+          "{appName} replaced three apps I used to juggle just to see where my money went."
+          <b>— Amaka O., {appName} customer</b>
         </div>
       </div>
     </div>

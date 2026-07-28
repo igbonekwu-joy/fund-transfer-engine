@@ -1,4 +1,6 @@
-import axios, { AxiosInstance, AxiosRequestConfig, AxiosError } from 'axios';
+import axios from 'axios';
+import type { AxiosInstance, AxiosRequestConfig, AxiosError } from 'axios';
+import type { CurrentUser, LaravelErrorResponse } from './types';
 
 const API_URL = import.meta.env.VITE_BACKEND_URL;
 
@@ -13,7 +15,7 @@ class LaravelClient {
                 'Accept': 'application/json',
             },
             timeout: 30000, // 30 seconds timeout
-            withCredentials: false, // Don't send cookies by default
+            withCredentials: true,
         });
 
         this.setupInterceptors();
@@ -35,7 +37,7 @@ class LaravelClient {
             (response) => {
                 return response;
             },
-            (error: AxiosError) => {
+            (error: AxiosError<LaravelErrorResponse>) => {
                 // Handle 401 Unauthorized - Token expired or invalid
                 if (error.response?.status === 401) {
                     const publicPaths = ['/'];
@@ -47,8 +49,8 @@ class LaravelClient {
 
                 // Extract error message from response
                 const errorMessage =
-                    (error.response?.data as any)?.message ||
-                    (error.response?.data as any)?.error ||
+                    error.response?.data?.message ||
+                    error.response?.data?.error ||
                     error.message ||
                     'An error occurred';
 
@@ -75,23 +77,27 @@ class LaravelClient {
             if (error instanceof Error) {
                 throw error;
             }
-            throw new Error('Network error occurred');
+            throw new Error('Network error occurred', { cause: error });
         }
     }
 
-    // async signUp(email: string, password: string, confirmPassword: string, name: string): Promise<{ user: string[]; token: string; message: string; }> {
-    //     const response = await this.request<{ user: string[]; token: string; message: string }>('/auth/register', {
-    //         method: 'POST',
-    //         data: {
-    //             name: name,
-    //             email,
-    //             password,
-    //             password_confirmation: confirmPassword,
-    //         },
-    //     });
+    async getCurrentUser(): Promise<{ user: CurrentUser }> {
+        return this.request<{ user: CurrentUser }>('/auth/user');
+    }
 
-    //     return response;
-    // }
+    async signUp(email: string, password: string, confirmPassword: string, name: string): Promise<{ user: CurrentUser; token: string; message: string; }> {
+        const response = await this.request<{ user: CurrentUser; token: string; message: string }>('/auth/register', {
+            method: 'POST',
+            data: {
+                name: name,
+                email,
+                password,
+                password_confirmation: confirmPassword,
+            },
+        });
+
+        return response;
+    }
 
 }
 

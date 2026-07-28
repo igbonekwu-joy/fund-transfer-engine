@@ -9,13 +9,14 @@ interface SidebarProps {
 }
 
 const Sidebar: FC<SidebarProps> = ({ isOpen, activeNav, onNavClick }) => {
+    const appName = import.meta.env.VITE_APP_NAME;
   return (
     <aside className={`sidebar${isOpen ? ' open' : ''}`} id="sidebar">
       <div className="brand">
         <div className="brand-mark">
           <Icon name="diamond" stroke="#08251A" strokeWidth={2} />
         </div>
-        <div className="brand-name">Kori</div>
+        <div className="brand-name">{appName}</div>
       </div>
 
       <div className="nav-label">Menu</div>
