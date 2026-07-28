@@ -23,7 +23,7 @@ class AuthController extends Controller
 
         return response()->json([
             'message' => 'User registered successfully.',
-            'user' => $result['user'] ?? null,
+            'user' => $result['user'],
         ], 201)
             ->cookie('access_token', $result['access_token'], 15, '/', null, app()->isProduction(), true, false, 'Strict')
             ->cookie('refresh_token', $result['refresh_token'], 60 * 24 * 7, '/api/v1/auth/refresh', null, app()->isProduction(), true, false, 'Strict');
