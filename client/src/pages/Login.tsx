@@ -12,6 +12,7 @@ const Login: FC = () => {
   const [form, setForm] = useState<LoginFormState>({ email: '', password: '', remember: false });
   const [errors, setErrors] = useState<FormErrors>({});
   const [submitting, setSubmitting] = useState(false);
+  const appName = import.meta.env.VITE_APP_NAME;
 
   const validate = (): boolean => {
     const next: FormErrors = {};
@@ -37,7 +38,7 @@ const Login: FC = () => {
       <div className="auth-form-header">
         <div className="auth-form-title">Welcome back</div>
         <div className="auth-form-sub">
-          New to Kori? <Link to="/register">Create an account</Link>
+          New to {appName}? <Link to="/register">Create an account</Link>
         </div>
       </div>
 

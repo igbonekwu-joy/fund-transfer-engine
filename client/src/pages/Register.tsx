@@ -6,12 +6,15 @@ import PasswordField from '@/components/auth/PasswordField';
 import OAuthRow from '@/components/auth/OAuth';
 import Icon from '@/components/Icon';
 import type { FormErrors, FormState } from '@/integrations/types';
+import { connect } from '@/integrations/client';
+import { toast } from 'sonner';
 
 const Register: FC = () => {
   const navigate = useNavigate();
   const [form, setForm] = useState<FormState>({ name: '', email: '', password: '', agree: false });
   const [errors, setErrors] = useState<FormErrors>({});
   const [submitting, setSubmitting] = useState(false);
+  const appName = import.meta.env.VITE_APP_NAME;
 
   const validate = (): boolean => {
     const next: FormErrors = {};
@@ -29,10 +32,22 @@ const Register: FC = () => {
     e.preventDefault();
     if (!validate()) return;
     setSubmitting(true);
-    // Replace with real auth call
-    await new Promise((r) => setTimeout(r, 900));
-    setSubmitting(false);
-    navigate('/');
+
+    try {
+        const data = await connect.signUp(form.email, form.password, form.password, form.name);
+        if (data.user) {
+            toast.success('Account created successfully');
+            navigate('/');
+        }
+    }
+    catch (error) {
+        console.log(error);
+        const message = error instanceof Error ? error.message : 'Account creation failed';
+        toast.error(message);
+    }
+    finally{
+        setSubmitting(false);
+    }
   };
 
   return (
@@ -86,7 +101,7 @@ const Register: FC = () => {
               onChange={(e) => setForm((f) => ({ ...f, agree: e.target.checked }))}
             />
             <span>
-              I agree to Kori's <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a>.
+              I agree to {appName}'s <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a>.
             </span>
           </label>
           {errors.agree && <div className="field-error">{errors.agree}</div>}
