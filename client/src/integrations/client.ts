@@ -77,7 +77,7 @@ class LaravelClient {
             if (error instanceof Error) {
                 throw error;
             }
-            throw new Error('Network error occurred');
+            throw new Error('Network error occurred', { cause: error });
         }
     }
 
