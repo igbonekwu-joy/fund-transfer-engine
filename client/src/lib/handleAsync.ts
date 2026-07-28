@@ -17,7 +17,11 @@ export async function handleAsync<T>(
     return result;
   } catch (error) {
     console.log(error);
-    toast.error(options.errorMessage ?? 'Something went wrong');
+    const message = error instanceof Error && error.message
+    ? error.message
+    : options.errorMessage ?? 'Something went wrong';
+
+    toast.error(message);
     return undefined;
   }
 }

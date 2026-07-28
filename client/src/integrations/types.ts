@@ -69,3 +69,8 @@ export interface HandleAsyncOptions {
   errorMessage?: string;
   onSuccess?: () => void;
 }
+
+export interface CurrentUser {
+  name: string;
+  email: string;
+}

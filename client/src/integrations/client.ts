@@ -1,6 +1,6 @@
 import axios from 'axios';
 import type { AxiosInstance, AxiosRequestConfig, AxiosError } from 'axios';
-import type { LaravelErrorResponse } from './types';
+import type { CurrentUser, LaravelErrorResponse } from './types';
 
 const API_URL = import.meta.env.VITE_BACKEND_URL;
 
@@ -81,8 +81,12 @@ class LaravelClient {
         }
     }
 
-    async signUp(email: string, password: string, confirmPassword: string, name: string): Promise<{ user: string[]; token: string; message: string; }> {
-        const response = await this.request<{ user: string[]; token: string; message: string }>('/auth/register', {
+    async getCurrentUser(): Promise<{ user: CurrentUser }> {
+        return this.request<{ user: CurrentUser }>('/auth/user');
+    }
+
+    async signUp(email: string, password: string, confirmPassword: string, name: string): Promise<{ user: CurrentUser; token: string; message: string; }> {
+        const response = await this.request<{ user: CurrentUser; token: string; message: string }>('/auth/register', {
             method: 'POST',
             data: {
                 name: name,
