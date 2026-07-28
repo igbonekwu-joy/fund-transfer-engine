@@ -15,7 +15,7 @@ class LaravelClient {
                 'Accept': 'application/json',
             },
             timeout: 30000, // 30 seconds timeout
-            withCredentials: false, // Don't send cookies by default
+            withCredentials: true,
         });
 
         this.setupInterceptors();
