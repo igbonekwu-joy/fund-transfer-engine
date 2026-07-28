@@ -16,7 +16,6 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
     (async () => {
       try {
         const currentUser = await connect.getCurrentUser();
-        console.log(currentUser)
 
         if (!cancelled) {
           setUser(currentUser.user);
