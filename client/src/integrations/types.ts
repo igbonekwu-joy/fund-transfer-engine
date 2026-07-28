@@ -57,3 +57,15 @@ export interface FormErrors {
   password?: string;
   agree?: string;
 }
+
+export interface LaravelErrorResponse {
+  message?: string;
+  error?: string;
+  errors?: Record<string, string[]>;
+}
+
+export interface HandleAsyncOptions {
+  successMessage?: string;
+  errorMessage?: string;
+  onSuccess?: () => void;
+}

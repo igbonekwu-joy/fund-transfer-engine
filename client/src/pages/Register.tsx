@@ -7,7 +7,7 @@ import OAuthRow from '@/components/auth/OAuth';
 import Icon from '@/components/Icon';
 import type { FormErrors, FormState } from '@/integrations/types';
 import { connect } from '@/integrations/client';
-import { toast } from 'sonner';
+import { handleAsync } from '@/lib/handleAsync';
 
 const Register: FC = () => {
   const navigate = useNavigate();
@@ -33,21 +33,16 @@ const Register: FC = () => {
     if (!validate()) return;
     setSubmitting(true);
 
-    try {
-        const data = await connect.signUp(form.email, form.password, form.password, form.name);
-        if (data.user) {
-            toast.success('Account created successfully');
-            navigate('/');
+    await handleAsync(
+        () => connect.signUp(form.email, form.password, form.password, form.name),
+        {
+            successMessage: 'Account created successfully',
+            errorMessage: 'Account creation failed',
+            onSuccess: () => navigate('/'),
         }
-    }
-    catch (error) {
-        console.log(error);
-        const message = error instanceof Error ? error.message : 'Account creation failed';
-        toast.error(message);
-    }
-    finally{
-        setSubmitting(false);
-    }
+    );
+
+    setSubmitting(false);
   };
 
   return (

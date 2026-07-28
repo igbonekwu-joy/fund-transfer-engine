@@ -1,5 +1,6 @@
 import axios from 'axios';
 import type { AxiosInstance, AxiosRequestConfig, AxiosError } from 'axios';
+import type { LaravelErrorResponse } from './types';
 
 const API_URL = import.meta.env.VITE_BACKEND_URL;
 
@@ -36,7 +37,7 @@ class LaravelClient {
             (response) => {
                 return response;
             },
-            (error: AxiosError) => {
+            (error: AxiosError<LaravelErrorResponse>) => {
                 // Handle 401 Unauthorized - Token expired or invalid
                 if (error.response?.status === 401) {
                     const publicPaths = ['/'];
@@ -48,8 +49,8 @@ class LaravelClient {
 
                 // Extract error message from response
                 const errorMessage =
-                    (error.response?.data as any)?.message ||
-                    (error.response?.data as any)?.error ||
+                    error.response?.data?.message ||
+                    error.response?.data?.error ||
                     error.message ||
                     'An error occurred';
 
