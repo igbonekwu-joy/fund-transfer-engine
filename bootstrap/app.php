@@ -16,7 +16,6 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->prepend(AttachTokenFromCookie::class);
-        $middleware->encryptCookies(except: ['access_token', 'refresh_token']);
         $middleware->alias([
             'sliding.throttle' => SlidingWindowRateLimit::class,
         ]);

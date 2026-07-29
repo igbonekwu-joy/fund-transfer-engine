@@ -51,8 +51,8 @@ class AuthController extends Controller
             'message' => 'User logged in successfully.',
             'user' => $user['user'],
         ], 200)
-            ->cookie('access_token', $user['access_token'], 15, '/', null, $request->secure(), true, false, 'Strict')
-            ->cookie('refresh_token', $user['refresh_token'], 60 * 24 * 7, '/api/v1/auth/refresh', null, $request->secure(), true, false, 'Strict');
+            ->cookie('access_token', $user['access_token'], 15, '/', null, true, true, false, 'None')
+            ->cookie('refresh_token', $user['refresh_token'], 60 * 24 * 7, '/api/v1/auth/refresh', null, true, true, false, 'None');
     }
 
     public function logout(Request $request): JsonResponse
