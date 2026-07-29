@@ -1,6 +1,8 @@
 import type { FC } from 'react';
 import Icon, { type IconName } from '@/components/Icon';
 import { primaryNav, secondaryNav } from '@/data/mockData';
+import { handleAsync } from '@/lib/handleAsync';
+import { connect } from '@/integrations/client';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -10,6 +12,18 @@ interface SidebarProps {
 
 const Sidebar: FC<SidebarProps> = ({ isOpen, activeNav, onNavClick }) => {
     const appName = import.meta.env.VITE_APP_NAME;
+
+    const handleLogout = async () => {
+        await handleAsync(
+                () => connect.signOut(),
+                {
+                    successMessage: '',
+                    errorMessage: 'Something went terribly wrong',
+                    onSuccess: () => setTimeout(() => { window.location.href = '/login' }, 1000),
+                }
+            );
+
+    }
   return (
     <aside className={`sidebar${isOpen ? ' open' : ''}`} id="sidebar">
       <div className="brand">
@@ -40,7 +54,12 @@ const Sidebar: FC<SidebarProps> = ({ isOpen, activeNav, onNavClick }) => {
           <button
             key={item.id}
             className={`nav-item${activeNav === item.id ? ' active' : ''}`}
-            onClick={() => onNavClick(item.id)}
+            onClick={() => {
+                if (item.route) {
+                    handleLogout();
+                }
+                onNavClick(item.id)
+            }}
           >
             <Icon name={item.icon as IconName} />
             {item.label}

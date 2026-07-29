@@ -90,8 +90,8 @@ it('sets the access token as a secure httpOnly cookie', function () {
 
     expect($cookie)->not->toBeNull();
     expect($cookie->isHttpOnly())->toBeTrue();
-    expect($cookie->isSecure())->toBe(app()->isProduction());
-    expect($cookie->getSameSite())->toBe('strict');
+    expect($cookie->isSecure())->toBe(true);
+    expect($cookie->getSameSite())->toBe('none');
     expect($cookie->getPath())->toBe('/');
 });
 
@@ -104,8 +104,8 @@ it('sets the refresh token as a secure httpOnly cookie', function () {
 
     expect($cookie)->not->toBeNull();
     expect($cookie->isHttpOnly())->toBeTrue();
-    expect($cookie->isSecure())->toBe(app()->isProduction());
-    expect($cookie->getSameSite())->toBe('strict');
+    expect($cookie->isSecure())->toBe(true);
+    expect($cookie->getSameSite())->toBe('none');
     expect($cookie->getPath())->toBe('/api/v1/auth/refresh');
 });
 

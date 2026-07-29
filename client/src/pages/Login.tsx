@@ -1,14 +1,15 @@
 import { useState, type FC, type FormEvent } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import AuthLayout from '@/components/auth/AuthLayout';
 import TextField from '@/components/auth/TextField';
 import PasswordField from '@/components/auth/PasswordField';
 import OAuthRow from '@/components/auth/OAuth';
 import Icon from '@/components/Icon';
 import type { FormErrors, LoginFormState } from '@/integrations/types';
+import { handleAsync } from '@/lib/handleAsync';
+import { connect } from '@/integrations/client';
 
 const Login: FC = () => {
-  const navigate = useNavigate();
   const [form, setForm] = useState<LoginFormState>({ email: '', password: '', remember: false });
   const [errors, setErrors] = useState<FormErrors>({});
   const [submitting, setSubmitting] = useState(false);
@@ -27,10 +28,17 @@ const Login: FC = () => {
     e.preventDefault();
     if (!validate()) return;
     setSubmitting(true);
-    // Replace with real auth call
-    await new Promise((r) => setTimeout(r, 900));
+
+    await handleAsync(
+        () => connect.signIn(form.email, form.password),
+        {
+            successMessage: 'Welcome Back!',
+            errorMessage: 'Something went terribly wrong',
+            onSuccess: () => setTimeout(() => { window.location.href = '/' }, 1000),
+        }
+    );
+
     setSubmitting(false);
-    navigate('/');
   };
 
   return (

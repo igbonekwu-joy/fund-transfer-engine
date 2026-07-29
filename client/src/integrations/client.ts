@@ -99,6 +99,19 @@ class LaravelClient {
         return response;
     }
 
+    async signIn(email: string, password: string): Promise<{ user: CurrentUser; message: string; }> {
+        const response = await this.request<{ user: CurrentUser; message: string }>('/auth/login', {
+            method: 'POST',
+            data: { email, password },
+        });
+
+        return response;
+    }
+
+    async signOut(): Promise<{ message: string }> {
+        return this.request<{ message: string }>('/auth/logout', { method: 'POST' });
+    }
+
 }
 
 export const connect = new LaravelClient(API_URL);
