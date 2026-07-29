@@ -99,8 +99,8 @@ class LaravelClient {
         return response;
     }
 
-    async signIn(email: string, password: string): Promise<{ user: CurrentUser; token: string; message: string; }> {
-        const response = await this.request<{ user: CurrentUser; token: string; message: string }>('/auth/login', {
+    async signIn(email: string, password: string): Promise<{ user: CurrentUser; message: string; }> {
+        const response = await this.request<{ user: CurrentUser; message: string }>('/auth/login', {
             method: 'POST',
             data: { email, password },
         });
@@ -108,14 +108,8 @@ class LaravelClient {
         return response;
     }
 
-    async signOut(): Promise<void> {
-        try {
-            await this.request('/auth/logout', {
-                method: 'POST',
-            });
-        } catch (error) {
-            console.error('Logout error:', error);
-        } 
+    async signOut(): Promise<{ message: string }> {
+        return this.request<{ message: string }>('/auth/logout', { method: 'POST' });
     }
 
 }
