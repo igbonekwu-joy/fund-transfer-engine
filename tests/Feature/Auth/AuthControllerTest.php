@@ -211,6 +211,36 @@ it('rotates tokens on refresh and rejects replay of the consumed refresh token',
     $replay->assertJson(['message' => 'Invalid refresh token.']);
 });
 
+it('sets the rotated XSRF token as a client-readable cookie on refresh', function () {
+    $this->disableCookieEncryption();
+
+    $register = $this->postJson('/api/v1/auth/register', validRegisterPayload(), withOrigin());
+    $refreshToken = findResponseCookie($register, 'refresh_token')?->getValue();
+    $csrfToken = findResponseCookie($register, 'XSRF-TOKEN')?->getValue();
+
+    $refresh = $this->call(
+        'POST',
+        '/api/v1/auth/refresh',
+        cookies: ['refresh_token' => $refreshToken, 'XSRF-TOKEN' => $csrfToken],
+        server: [
+            'CONTENT_TYPE' => 'application/json',
+            'HTTP_ACCEPT' => 'application/json',
+            'HTTP_X_XSRF_TOKEN' => $csrfToken,
+        ],
+        content: '{}',
+    );
+
+    $refresh->assertOk();
+
+    $newCsrfCookie = findResponseCookie($refresh, 'XSRF-TOKEN');
+
+    expect($newCsrfCookie)->not->toBeNull();
+    expect($newCsrfCookie->isHttpOnly())->toBeFalse();
+    expect($newCsrfCookie->isSecure())->toBeTrue();
+    expect($newCsrfCookie->getSameSite())->toBe('none');
+    expect($newCsrfCookie->getValue())->not->toBe($csrfToken); // confirms rotation too
+});
+
 it('never allows more than maxAttempts concurrent logins through the sliding window', function () {
     $ipMax = 10;
     $emailMax = 3;

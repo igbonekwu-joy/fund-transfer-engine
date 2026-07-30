@@ -39,7 +39,7 @@ class AuthController extends Controller
         return response()->json(['message' => 'Token refreshed.'])
             ->cookie('access_token', $result['access_token'], 15, '/', null, true, true, false, 'None')
             ->cookie('refresh_token', $result['refresh_token'], 60 * 24 * 7, '/api/v1/auth/refresh', null, true, true, false, 'None')
-            ->cookie('XSRF-TOKEN', $result['csrf_token'], 60 * 24 * 7, '/', null, true, true, false, 'None');
+            ->cookie('XSRF-TOKEN', $result['csrf_token'], 60 * 24 * 7, '/', null, true, false, false, 'None');
     }
 
     public function login(LoginRequest $request): JsonResponse
