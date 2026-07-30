@@ -8,6 +8,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Laravel\Sanctum\PersonalAccessToken;
+use Illuminate\Support\Str;
 
 class AuthService
 {
@@ -22,10 +23,13 @@ class AuthService
             'password' => bcrypt($password),
         ]);
 
+        $csrfToken = Str::random(40);
+
         return [
             'user' => $user->toApiArray(),
             'access_token' => $user->createToken('fundTransferAuthToken', ['*'], now()->addMinutes(15))->plainTextToken,
             'refresh_token' => $user->createToken('fundTransferRefreshToken', ['refresh'], now()->addDays(7))->plainTextToken,
+            'csrf_token' => $csrfToken,
         ];
     }
 
@@ -61,7 +65,9 @@ class AuthService
             throw new UnauthenticatedException('Refresh token has expired.');
         }
 
-        return DB::transaction(function () use ($id) {
+        $csrfToken = Str::random(40);
+
+        return DB::transaction(function () use ($id, $csrfToken) {
             $tokenModel = PersonalAccessToken::where('id', $id)
                 ->lockForUpdate()
                 ->first();
@@ -90,6 +96,7 @@ class AuthService
                 'user' => $user,
                 'access_token' => $user->createToken('fundTransferAuthToken', ['*'], now()->addMinutes(15))->plainTextToken,
                 'refresh_token' => $user->createToken('fundTransferRefreshToken', ['refresh'], now()->addDays(7))->plainTextToken,
+                'csrf_token' => $csrfToken,
             ];
         });
     }
@@ -105,10 +112,13 @@ class AuthService
             throw new InvalidCredentialsException('Invalid credentials.');
         }
 
+        $csrfToken = Str::random(40);
+
         return [
             'user' => $user->toApiArray(),
             'access_token' => $user->createToken('fundTransferAuthToken', ['*'], now()->addMinutes(15))->plainTextToken,
             'refresh_token' => $user->createToken('fundTransferRefreshToken', ['refresh'], now()->addDays(7))->plainTextToken,
+            'csrf_token' => $csrfToken,
         ];
     }
 
