@@ -76,6 +76,10 @@ export interface HandleAsyncOptions {
 export interface CurrentUser {
   name: string;
   email: string;
+  phone: string;
+  address: string;
+  dob: string;
+  gender: string;
 }
 
 export type FieldType = "text" | "tel" | "email" | "date" | "select" | "textarea";

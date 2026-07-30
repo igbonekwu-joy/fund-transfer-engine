@@ -8,10 +8,14 @@ import {
     Users as GenderIcon,
     Check,
     Pencil,
+    CreditCard,
 } from "lucide-react";
 import Sidebar from "@/components/Sidebar";
 import Topbar from "@/components/Topbar";
 import type { FieldDef, ProfileData } from "@/integrations/types";
+import { useAuth } from "@/contexts/AuthContext";
+import { handleAsync } from "@/lib/handleAsync";
+import { connect } from "@/integrations/client";
 
 const FIELD_DEFS: FieldDef[] = [
     { key: "fullName", label: "Full name", icon: User, type: "text", placeholder: "e.g. Joy Adeyemi" },
@@ -29,12 +33,12 @@ const FIELD_DEFS: FieldDef[] = [
 ];
 
 const INITIAL_PROFILE: ProfileData = {
-    fullName: "Joy Adeyemi",
-    mobile: "0803 456 7890",
-    gender: "Female",
-    dob: "1999-04-12",
-    email: "joy@kori.app",
-    address: "14 Adeola Odeku Street, Victoria Island, Lagos",
+    fullName: "",
+    mobile: "",
+    gender: "",
+    dob: "",
+    email: "",
+    address: "",
 };
 
 // function generateNuban(): string {
@@ -59,22 +63,36 @@ const ProfilePage = () => {
     // const [copied, setCopied] = useState(false);
     const [savedFlash, setSavedFlash] = useState(false);
     const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
+    const { user } = useAuth();
     const handleNavClick = (id: string) => {
         setActiveNav(id);
         setSidebarOpen(false);
     };
+
+    useEffect(() => {
+        if (!user) {
+            return;
+        }
+        INITIAL_PROFILE.fullName = user.name;
+        INITIAL_PROFILE.email = user.email;
+        INITIAL_PROFILE.mobile = user.phone;
+        INITIAL_PROFILE.gender = user.gender;
+        INITIAL_PROFILE.dob = user.dob;
+        INITIAL_PROFILE.address = user.address;
+    }, [user]);
 
     useEffect(() => () => {
         if (intervalRef.current) clearInterval(intervalRef.current);
     }, []);
 
     function formatLocalDate(dateStr: string): string {
-        const [year, month, day] = dateStr.split("-").map(Number);
+        const dateOnly = dateStr.split(" ")[0];
+        const [year, month, day] = dateOnly.split("-").map(Number);
+
         return new Date(year, month - 1, day).toLocaleDateString(undefined, {
-            year: "numeric",
-            month: "long",
             day: "numeric",
+            month: "long",
+            year: "numeric",
         });
     }
 
@@ -114,8 +132,18 @@ const ProfilePage = () => {
         setEditing(false);
     };
 
-    const saveChanges = (e: React.FormEvent) => {
+    const saveChanges = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        await handleAsync(
+            () => connect.updateProfile(draft),
+            {
+                successMessage: 'Success!',
+                errorMessage: 'Something went terribly wrong',
+                onSuccess: () => '',
+            }
+        );
+
         setProfile(draft);
         setEditing(false);
         setSavedFlash(true);
@@ -159,10 +187,10 @@ const ProfilePage = () => {
                         <p className="identity-email">{profile.email || "No email on file"}</p>
 
                         <div className="acct-block">
-                            {/* <p className="acct-block-label">
+                            <p className="acct-block-label">
                                 <CreditCard /> Account number
                             </p>
-                            <div className="acct-number-row">
+                            {/* <div className="acct-number-row">
                                 <span className={`acct-number${accountNumber ? " set" : ""}`}>
                                     {accountNumber ? groupDigits(accountNumber) : "Not generated"}
                                 </span>
