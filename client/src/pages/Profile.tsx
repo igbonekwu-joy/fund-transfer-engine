@@ -53,6 +53,7 @@ const INITIAL_PROFILE: ProfileData = {
 // }
 
 const ProfilePage = () => {
+    const { user } = useAuth();
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [profile, setProfile] = useState<ProfileData>(INITIAL_PROFILE);
     const [draft, setDraft] = useState<ProfileData>(INITIAL_PROFILE);
@@ -63,7 +64,7 @@ const ProfilePage = () => {
     // const [copied, setCopied] = useState(false);
     const [savedFlash, setSavedFlash] = useState(false);
     const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-    const { user } = useAuth();
+
     const handleNavClick = (id: string) => {
         setActiveNav(id);
         setSidebarOpen(false);
@@ -73,12 +74,17 @@ const ProfilePage = () => {
         if (!user) {
             return;
         }
-        INITIAL_PROFILE.fullName = user.name;
-        INITIAL_PROFILE.email = user.email;
-        INITIAL_PROFILE.mobile = user.phone;
-        INITIAL_PROFILE.gender = user.gender;
-        INITIAL_PROFILE.dob = user.dob;
-        INITIAL_PROFILE.address = user.address;
+
+        const userProfile: ProfileData = {
+            fullName: user.name,
+            email: user.email,
+            mobile: user.phone || "",
+            gender: user.gender || "",
+            dob: user.dob || "",
+            address: user.address || "",
+        };
+        setProfile(userProfile);
+        setDraft(userProfile);
     }, [user]);
 
     useEffect(() => () => {

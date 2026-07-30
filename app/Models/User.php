@@ -27,8 +27,13 @@ use Laravel\Sanctum\HasApiTokens;
  * @property string|null $remember_token
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
+ * @property string|null $phone
+ * @property string|null $dob
+ * @property string|null $gender
+ * @property string|null $address
+ * @property string|null $account_number
  */
-#[Fillable(['name', 'email', 'password', 'gender', 'phone', 'address', 'dob', 'account_number'])]
+#[Fillable(['name', 'email', 'password', 'gender', 'phone', 'address', 'dob'])]
 #[Hidden(['password', 'two_factor_secret', 'two_factor_recovery_codes', 'remember_token'])]
 class User extends Authenticatable
 {
@@ -65,7 +70,16 @@ class User extends Authenticatable
     }
 
     /**
-     * @return array<string, string>
+     * @return array{
+     *     name: string,
+     *     email: string,
+     *     phone: string|null,
+     *     dob: string|null,
+     *     gender: string|null,
+     *     address: string|null,
+     *     account_number: string|null,
+     *     initials: string,
+     * }
      */
     public function toApiArray(): array
     {

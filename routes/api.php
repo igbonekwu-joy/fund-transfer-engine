@@ -18,7 +18,7 @@ Route::prefix('v1')->group(function () {
 
     Route::middleware('auth:sanctum')->group(function () {
         Route::prefix('user')->group(function () {
-            Route::apiResource('profile', ProfileController::class);
+            Route::post('profile', [ProfileController::class, 'store']);
         });
 
     });

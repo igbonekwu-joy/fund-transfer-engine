@@ -27,7 +27,7 @@ class ProfileRequest extends FormRequest
             'gender' => ['nullable', 'string', 'max:255'],
             'mobile' => ['required', 'string', 'max:255'],
             'address' => ['required', 'string', 'max:255'],
-            'dob' => ['required', 'string', 'max:255'],
+            'dob' => ['required', 'date_format:Y-m-d', 'before:today'],
         ];
     }
 }
