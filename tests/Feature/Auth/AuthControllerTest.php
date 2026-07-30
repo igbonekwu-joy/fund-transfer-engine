@@ -9,6 +9,14 @@ use Symfony\Component\Process\Process;
 
 uses(RefreshDatabase::class);
 
+const TEST_ORIGIN = 'http://localhost';
+
+beforeEach(function () {
+    // login/register are CSRF-exempt but Origin-checked; keep this in sync
+    // with whatever VerifyXsrfToken reads from config('cors.allowed_origins').
+    config(['cors.allowed_origins' => [TEST_ORIGIN]]);
+});
+
 function validRegisterPayload(array $overrides = []): array
 {
     return array_merge([
@@ -17,6 +25,11 @@ function validRegisterPayload(array $overrides = []): array
         'password' => 'password123',
         'password_confirmation' => 'password123',
     ], $overrides);
+}
+
+function withOrigin(array $headers = []): array
+{
+    return array_merge(['Origin' => TEST_ORIGIN], $headers);
 }
 
 function findResponseCookie($response, string $name)
@@ -31,7 +44,7 @@ function findResponseCookie($response, string $name)
 }
 
 it('registers a user and returns a 201 with the expected json shape', function () {
-    $response = $this->postJson('/api/v1/auth/register', validRegisterPayload());
+    $response = $this->postJson('/api/v1/auth/register', validRegisterPayload(), withOrigin());
 
     $response->assertCreated();
     $response->assertJsonStructure([
@@ -44,7 +57,7 @@ it('registers a user and returns a 201 with the expected json shape', function (
 });
 
 it('persists the user in the database with a hashed password', function () {
-    $this->postJson('/api/v1/auth/register', validRegisterPayload());
+    $this->postJson('/api/v1/auth/register', validRegisterPayload(), withOrigin());
 
     $this->assertDatabaseHas('users', [
         'email' => 'joy@example.com',
@@ -58,7 +71,7 @@ it('persists the user in the database with a hashed password', function () {
 });
 
 it('creates an access token and a refresh token for the new user', function () {
-    $this->postJson('/api/v1/auth/register', validRegisterPayload());
+    $this->postJson('/api/v1/auth/register', validRegisterPayload(), withOrigin());
 
     $user = User::firstWhere('email', 'joy@example.com');
 
@@ -75,14 +88,14 @@ it('creates an access token and a refresh token for the new user', function () {
 });
 
 it('does not expose the access or refresh token in the response body', function () {
-    $response = $this->postJson('/api/v1/auth/register', validRegisterPayload());
+    $response = $this->postJson('/api/v1/auth/register', validRegisterPayload(), withOrigin());
 
     $response->assertJsonMissingPath('access_token');
     $response->assertJsonMissingPath('refresh_token');
 });
 
 it('sets the access token as a secure httpOnly cookie', function () {
-    $response = $this->postJson('/api/v1/auth/register', validRegisterPayload());
+    $response = $this->postJson('/api/v1/auth/register', validRegisterPayload(), withOrigin());
 
     $response->assertCookie('access_token');
 
@@ -96,7 +109,7 @@ it('sets the access token as a secure httpOnly cookie', function () {
 });
 
 it('sets the refresh token as a secure httpOnly cookie', function () {
-    $response = $this->postJson('/api/v1/auth/register', validRegisterPayload());
+    $response = $this->postJson('/api/v1/auth/register', validRegisterPayload(), withOrigin());
 
     $response->assertCookie('refresh_token');
 
@@ -112,7 +125,7 @@ it('sets the refresh token as a secure httpOnly cookie', function () {
 it('rejects registration with a duplicate email', function () {
     User::factory()->create(['email' => 'joy@example.com']);
 
-    $response = $this->postJson('/api/v1/auth/register', validRegisterPayload());
+    $response = $this->postJson('/api/v1/auth/register', validRegisterPayload(), withOrigin());
 
     $response->assertStatus(422);
     $response->assertJsonValidationErrors('email');
@@ -121,10 +134,18 @@ it('rejects registration with a duplicate email', function () {
 it('rejects registration when passwords do not match', function () {
     $response = $this->postJson('/api/v1/auth/register', validRegisterPayload([
         'password_confirmation' => 'mismatch',
-    ]));
+    ]), withOrigin());
 
     $response->assertStatus(422);
     $response->assertJsonValidationErrors('password');
+});
+
+it('rejects registration when the Origin header is missing or not allowed', function () {
+    $response = $this->postJson('/api/v1/auth/register', validRegisterPayload(), [
+        'Origin' => 'https://attacker.example',
+    ]);
+
+    $response->assertStatus(419);
 });
 
 it('rejects a refresh token that has already been consumed', function () {
@@ -146,7 +167,7 @@ it('rejects a refresh token that has already been consumed', function () {
 it('rotates tokens on refresh and rejects replay of the consumed refresh token', function () {
     $this->disableCookieEncryption();
 
-    $register = $this->postJson('/api/v1/auth/register', validRegisterPayload());
+    $register = $this->postJson('/api/v1/auth/register', validRegisterPayload(), withOrigin());
     $refreshToken = findResponseCookie($register, 'refresh_token')?->getValue();
     $csrfToken = findResponseCookie($register, 'XSRF-TOKEN')?->getValue();
 
@@ -234,7 +255,7 @@ it('does not throw a TypeError when email is submitted as an array', function ()
     $response = $this->postJson('/api/v1/auth/login', [
         'email' => ['a@example.com', 'b@example.com'],
         'password' => 'password123',
-    ]);
+    ], withOrigin());
 
     $response->assertStatus(422);
     $response->assertJsonMissing(['message' => 'Server Error']);

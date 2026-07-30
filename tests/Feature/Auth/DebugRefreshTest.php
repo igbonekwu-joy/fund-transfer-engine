@@ -4,6 +4,10 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
 
+beforeEach(function () {
+    config(['cors.allowed_origins' => ['http://localhost']]);
+});
+
 it('rotates the refresh token on refresh and rejects replay of the consumed token', function () {
     $this->disableCookieEncryption();
 
@@ -12,7 +16,7 @@ it('rotates the refresh token on refresh and rejects replay of the consumed toke
         'email' => 'joy@example.com',
         'password' => 'password123',
         'password_confirmation' => 'password123',
-    ]);
+    ], withOrigin());
 
     $originalToken = null;
     $csrfToken = findResponseCookie($register, 'XSRF-TOKEN')?->getValue();

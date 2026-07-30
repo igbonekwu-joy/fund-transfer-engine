@@ -31,11 +31,13 @@ class LaravelClient {
         this.axiosInstance.interceptors.request.use(
             (config) => {
                 const method = (config.method ?? "GET").toUpperCase();
-                const headers = new Headers(config.headers);
 
                 if (["POST", "PUT", "PATCH", "DELETE"].includes(method)) {
                     const token = this.getCookie("XSRF-TOKEN");
-                    if (token) headers.set("X-XSRF-TOKEN", token);
+                    if (token) {
+                        config.headers = config.headers ?? {};
+                        config.headers["X-XSRF-TOKEN"] = token;
+                    }
                 }
 
                 return config;
