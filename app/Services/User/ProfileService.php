@@ -2,16 +2,14 @@
 
 namespace App\Services\User;
 
-use App\Exceptions\Auth\InvalidCredentialsException;
-use App\Exceptions\Auth\UnauthenticatedException;
 use App\Models\User;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
-use Laravel\Sanctum\PersonalAccessToken;
 
 class ProfileService
 {
+    /**
+     * @return array{user: array<string, string>}
+     */
     public function update(User $user, Request $request): array
     {
         $user->update([
@@ -19,18 +17,18 @@ class ProfileService
             'phone' => $request->mobile,
             'gender' => $request->gender ?? 'Male',
             'address' => $request->address,
-            'dob' => $request->dob
+            'dob' => $request->dob,
         ]);
 
-        if(! $user->account_number) {
+        if (! $user->account_number) {
             $accountNumber = $this->generateAccountNumber();
             $user->update([
-                'account_number' => $accountNumber
+                'account_number' => $accountNumber,
             ]);
         }
 
         return [
-            'user' => $user->toApiArray()
+            'user' => $user->toApiArray(),
         ];
     }
 
