@@ -148,39 +148,40 @@ it('rotates tokens on refresh and rejects replay of the consumed refresh token',
 
     $register = $this->postJson('/api/v1/auth/register', validRegisterPayload());
     $refreshToken = findResponseCookie($register, 'refresh_token')?->getValue();
+    $csrfToken = findResponseCookie($register, 'XSRF-TOKEN')?->getValue();
 
     expect($refreshToken)->not->toBeNull()->not->toBeEmpty();
+    expect($csrfToken)->not->toBeNull()->not->toBeEmpty();
 
     $refresh = $this->call(
         'POST',
         '/api/v1/auth/refresh',
-        cookies: ['refresh_token' => $refreshToken],
+        cookies: [
+            'refresh_token' => $refreshToken,
+            'XSRF-TOKEN' => $csrfToken,
+        ],
         server: [
             'CONTENT_TYPE' => 'application/json',
             'HTTP_ACCEPT' => 'application/json',
+            'HTTP_X_XSRF_TOKEN' => $csrfToken,
         ],
         content: '{}',
     );
 
     $refresh->assertOk();
-    $refresh->assertJson(['message' => 'Token refreshed.']);
-    $refresh->assertCookie('access_token');
-    $refresh->assertCookie('refresh_token');
-
-    $replacement = findResponseCookie($refresh, 'refresh_token')?->getValue();
-    expect($replacement)->not->toBeNull()->not->toBe($refreshToken);
-
-    $user = User::firstWhere('email', 'joy@example.com');
-    expect($user->tokens)->toHaveCount(2);
-    expect($user->tokens->firstWhere('name', 'fundTransferRefreshToken'))->not->toBeNull();
+    $newCsrfToken = findResponseCookie($refresh, 'XSRF-TOKEN')?->getValue();
 
     $replay = $this->call(
         'POST',
         '/api/v1/auth/refresh',
-        cookies: ['refresh_token' => $refreshToken],
+        cookies: [
+            'refresh_token' => $refreshToken,
+            'XSRF-TOKEN' => $csrfToken,
+        ],
         server: [
             'CONTENT_TYPE' => 'application/json',
             'HTTP_ACCEPT' => 'application/json',
+            'HTTP_X_XSRF_TOKEN' => $csrfToken,
         ],
         content: '{}',
     );

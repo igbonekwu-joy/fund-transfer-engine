@@ -8,6 +8,7 @@ use Symfony\Component\HttpFoundation\Response;
 
 class VerifyXsrfToken
 {
+    /** @var array<int, string> */
     private array $except = [
         'api/v1/auth/login',
         'api/v1/auth/register',
@@ -15,11 +16,11 @@ class VerifyXsrfToken
 
     public function handle(Request $request, Closure $next): Response
     {
-        if (in_array($request->method(), ['POST', 'PUT', 'PATCH', 'DELETE'], true) && ! $this->isExcluded($request) ) {
+        if (in_array($request->method(), ['POST', 'PUT', 'PATCH', 'DELETE'], true) && ! $this->isExcluded($request)) {
             $cookie = $request->cookie('XSRF-TOKEN');
             $header = $request->header('X-XSRF-TOKEN');
 
-            if (! $cookie || ! $header || ! hash_equals($cookie, $header)) {
+            if (! is_string($cookie) || ! is_string($header) || $cookie === '' || $header === '' || ! hash_equals($cookie, $header)) {
                 abort(419, 'CSRF token mismatch.');
             }
         }

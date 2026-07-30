@@ -7,13 +7,13 @@ use App\Exceptions\Auth\UnauthenticatedException;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Laravel\Sanctum\PersonalAccessToken;
 use Illuminate\Support\Str;
+use Laravel\Sanctum\PersonalAccessToken;
 
 class AuthService
 {
     /**
-     * @return array{user: array<string, string>, access_token: string, refresh_token: string}
+     * @return array{user: array<string, string>, access_token: string, refresh_token: string, csrf_token: string}
      */
     public function register(string $name, string $email, string $password): array
     {
@@ -34,7 +34,7 @@ class AuthService
     }
 
     /**
-     * @return array{user: User, access_token: string, refresh_token: string}
+     * @return array{user: User, access_token: string, refresh_token: string, csrf_token: string}
      */
     public function refresh(?string $refreshToken): array
     {
@@ -102,7 +102,7 @@ class AuthService
     }
 
     /**
-     * @return array{user: array<string, string>, access_token: string, refresh_token: string}
+     * @return array{user: array<string, string>, access_token: string, refresh_token: string, csrf_token: string}
      */
     public function login(string $email, string $password): array
     {
