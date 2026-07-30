@@ -3,6 +3,7 @@ import Icon, { type IconName } from '@/components/Icon';
 import { primaryNav, secondaryNav } from '@/data/mockData';
 import { handleAsync } from '@/lib/handleAsync';
 import { connect } from '@/integrations/client';
+import { useNavigate } from 'react-router-dom';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -12,6 +13,7 @@ interface SidebarProps {
 
 const Sidebar: FC<SidebarProps> = ({ isOpen, activeNav, onNavClick }) => {
     const appName = import.meta.env.VITE_APP_NAME;
+    const navigate = useNavigate();
 
     const handleLogout = async () => {
         await handleAsync(
@@ -39,7 +41,17 @@ const Sidebar: FC<SidebarProps> = ({ isOpen, activeNav, onNavClick }) => {
           <button
             key={item.id}
             className={`nav-item${activeNav === item.id ? ' active' : ''}`}
-            onClick={() => onNavClick(item.id)}
+            onClick={() => {
+                switch (item.id) {
+                    case 'overview':
+                        navigate('/');
+                        break;
+                    case 'settings':
+                       navigate('/profile');
+                }
+                onNavClick(item.id)
+            }}
+
           >
             <Icon name={item.icon as IconName} />
             {item.label}
@@ -55,8 +67,12 @@ const Sidebar: FC<SidebarProps> = ({ isOpen, activeNav, onNavClick }) => {
             key={item.id}
             className={`nav-item${activeNav === item.id ? ' active' : ''}`}
             onClick={() => {
-                if (item.route) {
-                    handleLogout();
+                switch (item.id) {
+                    case 'logout':
+                        handleLogout();
+                        break;
+                    case 'settings':
+                       navigate('/profile');
                 }
                 onNavClick(item.id)
             }}

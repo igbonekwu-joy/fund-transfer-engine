@@ -10,7 +10,7 @@ export const primaryNav: NavItem[] = [
 
 export const secondaryNav: NavItem[] = [
   { id: 'settings', label: 'Settings', icon: 'settings' },
-  { id: 'logout', label: 'Log out', icon: 'logout', route: 'logout' },
+  { id: 'logout', label: 'Log out', icon: 'logout' },
 ];
 
 export const spendData: SpendPoint[] = [
