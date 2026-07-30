@@ -46,8 +46,6 @@ const Sidebar: FC<SidebarProps> = ({ isOpen, activeNav, onNavClick }) => {
                     case 'overview':
                         navigate('/');
                         break;
-                    case 'settings':
-                       navigate('/profile');
                 }
                 onNavClick(item.id)
             }}
@@ -73,6 +71,7 @@ const Sidebar: FC<SidebarProps> = ({ isOpen, activeNav, onNavClick }) => {
                         break;
                     case 'settings':
                        navigate('/profile');
+                        break;
                 }
                 onNavClick(item.id)
             }}

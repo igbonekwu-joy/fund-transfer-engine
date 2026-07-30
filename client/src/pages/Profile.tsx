@@ -6,34 +6,12 @@ import {
     MapPin,
     Calendar,
     Users as GenderIcon,
-    RefreshCw,
-    Copy,
     Check,
     Pencil,
-    CreditCard,
 } from "lucide-react";
 import Sidebar from "@/components/Sidebar";
 import Topbar from "@/components/Topbar";
-
-type FieldType = "text" | "tel" | "email" | "date" | "select" | "textarea";
-
-interface FieldDef {
-    key: keyof ProfileData;
-    label: string;
-    icon: typeof User;
-    type: FieldType;
-    placeholder?: string;
-    options?: string[];
-}
-
-interface ProfileData {
-    fullName: string;
-    mobile: string;
-    gender: string;
-    dob: string;
-    email: string;
-    address: string;
-}
+import type { FieldDef, ProfileData } from "@/integrations/types";
 
 const FIELD_DEFS: FieldDef[] = [
     { key: "fullName", label: "Full name", icon: User, type: "text", placeholder: "e.g. Joy Adeyemi" },
@@ -59,57 +37,72 @@ const INITIAL_PROFILE: ProfileData = {
     address: "14 Adeola Odeku Street, Victoria Island, Lagos",
 };
 
-function generateNuban(): string {
-    // Nigerian-style 10-digit account number, first digit 2–9 (never starts with 0)
-    let n = String(Math.floor(Math.random() * 8) + 2);
-    for (let i = 0; i < 9; i++) n += Math.floor(Math.random() * 10);
-    return n;
-}
+// function generateNuban(): string {
+//     // Nigerian-style 10-digit account number, first digit 2–9 (never starts with 0)
+//     let n = String(Math.floor(Math.random() * 8) + 2);
+//     for (let i = 0; i < 9; i++) n += Math.floor(Math.random() * 10);
+//     return n;
+// }
 
-function groupDigits(str: string): string {
-    return str.replace(/(\d{4})(?=\d)/g, "$1 ");
-}
+// function groupDigits(str: string): string {
+//     return str.replace(/(\d{4})(?=\d)/g, "$1 ");
+// }
 
 const ProfilePage = () => {
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [profile, setProfile] = useState<ProfileData>(INITIAL_PROFILE);
     const [draft, setDraft] = useState<ProfileData>(INITIAL_PROFILE);
     const [editing, setEditing] = useState(false);
-    const [accountNumber, setAccountNumber] = useState<string | null>(null);
-    const [rolling, setRolling] = useState(false);
-    const [copied, setCopied] = useState(false);
+    const [activeNav, setActiveNav] = useState('settings');
+    // const [accountNumber, setAccountNumber] = useState<string | null>(null);
+    // const [rolling, setRolling] = useState(false);
+    // const [copied, setCopied] = useState(false);
     const [savedFlash, setSavedFlash] = useState(false);
     const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+    const handleNavClick = (id: string) => {
+        setActiveNav(id);
+        setSidebarOpen(false);
+    };
 
     useEffect(() => () => {
         if (intervalRef.current) clearInterval(intervalRef.current);
     }, []);
 
-    const handleGenerate = () => {
-        if (rolling) return;
-        setCopied(false);
-        setRolling(true);
-        let ticks = 0;
-        intervalRef.current = setInterval(() => {
-            setAccountNumber(generateNuban());
-            ticks += 1;
-            if (ticks >= 10) {
-                if (intervalRef.current) clearInterval(intervalRef.current);
-                setRolling(false);
-            }
-        }, 60);
-    };
+    function formatLocalDate(dateStr: string): string {
+        const [year, month, day] = dateStr.split("-").map(Number);
+        return new Date(year, month - 1, day).toLocaleDateString(undefined, {
+            year: "numeric",
+            month: "long",
+            day: "numeric",
+        });
+    }
 
-    const handleCopy = async () => {
-        if (!accountNumber) return;
-        try {
-            await navigator.clipboard.writeText(accountNumber);
-            setCopied(true);
-            setTimeout(() => setCopied(false), 1600);
-        } catch {
-            // clipboard unavailable — fail silently
-        }
-    };
+    // const handleGenerate = () => {
+    //     if (rolling) return;
+    //     setCopied(false);
+    //     setRolling(true);
+    //     let ticks = 0;
+    //     intervalRef.current = setInterval(() => {
+    //         setAccountNumber(generateNuban());
+    //         ticks += 1;
+    //         if (ticks >= 10) {
+    //             if (intervalRef.current) clearInterval(intervalRef.current);
+    //             setRolling(false);
+    //         }
+    //     }, 60);
+    // };
+
+    // const handleCopy = async () => {
+    //     if (!accountNumber) return;
+    //     try {
+    //         await navigator.clipboard.writeText(accountNumber);
+    //         setCopied(true);
+    //         setTimeout(() => setCopied(false), 1600);
+    //     } catch {
+    //         // clipboard unavailable — fail silently
+    //     }
+    // };
 
     const startEditing = () => {
         setDraft(profile);
@@ -138,7 +131,7 @@ const ProfilePage = () => {
 
     return (
         <div className="app">
-            <Sidebar isOpen={sidebarOpen} activeNav="profile" onNavClick={() => setSidebarOpen(false)} />
+            <Sidebar isOpen={sidebarOpen} activeNav={activeNav} onNavClick={handleNavClick} />
 
             <div
                 className={`overlay${sidebarOpen ? " show" : ""}`}
@@ -166,7 +159,7 @@ const ProfilePage = () => {
                         <p className="identity-email">{profile.email || "No email on file"}</p>
 
                         <div className="acct-block">
-                            <p className="acct-block-label">
+                            {/* <p className="acct-block-label">
                                 <CreditCard /> Account number
                             </p>
                             <div className="acct-number-row">
@@ -178,15 +171,15 @@ const ProfilePage = () => {
                                         {copied ? <Check /> : <Copy />}
                                     </button>
                                 )}
-                            </div>
-                            <button
+                            </div> */}
+                            {/* <button
                                 className={`generate-btn${rolling ? " spin" : ""}`}
                                 onClick={handleGenerate}
                                 disabled={rolling}
                             >
                                 <RefreshCw />
                                 {accountNumber ? "Regenerate account number" : "Generate account number"}
-                            </button>
+                            </button> */}
                         </div>
                     </div>
 
@@ -225,13 +218,7 @@ const ProfilePage = () => {
 
                                         {!editing && (
                                             <div className="field-value">
-                                                {type === "date" && value
-                                                    ? new Date(value).toLocaleDateString(undefined, {
-                                                          year: "numeric",
-                                                          month: "long",
-                                                          day: "numeric",
-                                                      })
-                                                    : value || "—"}
+                                                {type === "date" && value ? formatLocalDate(value) : value || "—"}
                                             </div>
                                         )}
 
