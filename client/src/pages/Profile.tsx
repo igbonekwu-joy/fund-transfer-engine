@@ -157,6 +157,11 @@ const ProfilePage = () => {
         .map((w) => w[0]?.toUpperCase())
         .join("");
 
+    function groupDigits(accountNumber: string): import("react").ReactNode {
+        return accountNumber.replace(/(\d{4})(?=\d)/g, "$1 ");
+        // throw new Error("Function not implemented.");
+    }
+
     return (
         <div className="app">
             <Sidebar isOpen={sidebarOpen} activeNav={activeNav} onNavClick={handleNavClick} />
@@ -190,16 +195,16 @@ const ProfilePage = () => {
                             <p className="acct-block-label">
                                 <CreditCard /> Account number
                             </p>
-                            {/* <div className="acct-number-row">
-                                <span className={`acct-number${accountNumber ? " set" : ""}`}>
-                                    {accountNumber ? groupDigits(accountNumber) : "Not generated"}
+                            <div className="acct-number-row">
+                                <span className={`acct-number${user?.account_number ? " set" : ""}`}>
+                                    {user?.account_number ? groupDigits(user?.account_number) : "Complete your profile to get an account number"}
                                 </span>
-                                {accountNumber && !rolling && (
+                                {/* {accountNumber && !rolling && (
                                     <button className="acct-copy-btn" onClick={handleCopy} aria-label="Copy account number">
                                         {copied ? <Check /> : <Copy />}
                                     </button>
-                                )}
-                            </div> */}
+                                )} */}
+                            </div>
                             {/* <button
                                 className={`generate-btn${rolling ? " spin" : ""}`}
                                 onClick={handleGenerate}

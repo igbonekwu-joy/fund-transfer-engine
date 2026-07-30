@@ -80,6 +80,7 @@ export interface CurrentUser {
   address: string;
   dob: string;
   gender: string;
+  account_number: string;
 }
 
 export type FieldType = "text" | "tel" | "email" | "date" | "select" | "textarea";
