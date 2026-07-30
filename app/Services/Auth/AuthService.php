@@ -7,12 +7,13 @@ use App\Exceptions\Auth\UnauthenticatedException;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Laravel\Sanctum\PersonalAccessToken;
 
 class AuthService
 {
     /**
-     * @return array{user: array<string, string>, access_token: string, refresh_token: string}
+     * @return array{user: array<string, string>, access_token: string, refresh_token: string, csrf_token: string}
      */
     public function register(string $name, string $email, string $password): array
     {
@@ -22,15 +23,18 @@ class AuthService
             'password' => bcrypt($password),
         ]);
 
+        $csrfToken = Str::random(40);
+
         return [
             'user' => $user->toApiArray(),
             'access_token' => $user->createToken('fundTransferAuthToken', ['*'], now()->addMinutes(15))->plainTextToken,
             'refresh_token' => $user->createToken('fundTransferRefreshToken', ['refresh'], now()->addDays(7))->plainTextToken,
+            'csrf_token' => $csrfToken,
         ];
     }
 
     /**
-     * @return array{user: User, access_token: string, refresh_token: string}
+     * @return array{user: User, access_token: string, refresh_token: string, csrf_token: string}
      */
     public function refresh(?string $refreshToken): array
     {
@@ -61,7 +65,9 @@ class AuthService
             throw new UnauthenticatedException('Refresh token has expired.');
         }
 
-        return DB::transaction(function () use ($id) {
+        $csrfToken = Str::random(40);
+
+        return DB::transaction(function () use ($id, $csrfToken) {
             $tokenModel = PersonalAccessToken::where('id', $id)
                 ->lockForUpdate()
                 ->first();
@@ -90,12 +96,13 @@ class AuthService
                 'user' => $user,
                 'access_token' => $user->createToken('fundTransferAuthToken', ['*'], now()->addMinutes(15))->plainTextToken,
                 'refresh_token' => $user->createToken('fundTransferRefreshToken', ['refresh'], now()->addDays(7))->plainTextToken,
+                'csrf_token' => $csrfToken,
             ];
         });
     }
 
     /**
-     * @return array{user: array<string, string>, access_token: string, refresh_token: string}
+     * @return array{user: array<string, string>, access_token: string, refresh_token: string, csrf_token: string}
      */
     public function login(string $email, string $password): array
     {
@@ -105,10 +112,13 @@ class AuthService
             throw new InvalidCredentialsException('Invalid credentials.');
         }
 
+        $csrfToken = Str::random(40);
+
         return [
             'user' => $user->toApiArray(),
             'access_token' => $user->createToken('fundTransferAuthToken', ['*'], now()->addMinutes(15))->plainTextToken,
             'refresh_token' => $user->createToken('fundTransferRefreshToken', ['refresh'], now()->addDays(7))->plainTextToken,
+            'csrf_token' => $csrfToken,
         ];
     }
 

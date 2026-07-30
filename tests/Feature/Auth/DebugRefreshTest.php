@@ -4,6 +4,10 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
 
+beforeEach(function () {
+    config(['cors.allowed_origins' => ['http://localhost']]);
+});
+
 it('rotates the refresh token on refresh and rejects replay of the consumed token', function () {
     $this->disableCookieEncryption();
 
@@ -12,9 +16,10 @@ it('rotates the refresh token on refresh and rejects replay of the consumed toke
         'email' => 'joy@example.com',
         'password' => 'password123',
         'password_confirmation' => 'password123',
-    ]);
+    ], withOrigin());
 
     $originalToken = null;
+    $csrfToken = findResponseCookie($register, 'XSRF-TOKEN')?->getValue();
     foreach ($register->headers->getCookies() as $cookie) {
         if ($cookie->getName() === 'refresh_token') {
             $originalToken = $cookie->getValue();
@@ -22,14 +27,16 @@ it('rotates the refresh token on refresh and rejects replay of the consumed toke
     }
 
     expect($originalToken)->not->toBeNull();
+    expect($csrfToken)->not->toBeNull()->not->toBeEmpty();
 
     $refresh = $this->call(
         'POST',
         '/api/v1/auth/refresh',
-        cookies: ['refresh_token' => $originalToken],
+        cookies: ['refresh_token' => $originalToken, 'XSRF-TOKEN' => $csrfToken],
         server: [
             'CONTENT_TYPE' => 'application/json',
             'HTTP_ACCEPT' => 'application/json',
+            'HTTP_X_XSRF_TOKEN' => $csrfToken,
         ],
         content: '{}',
     );
@@ -50,10 +57,11 @@ it('rotates the refresh token on refresh and rejects replay of the consumed toke
     $replay = $this->call(
         'POST',
         '/api/v1/auth/refresh',
-        cookies: ['refresh_token' => $originalToken],
+        cookies: ['refresh_token' => $originalToken, 'XSRF-TOKEN' => $csrfToken],
         server: [
             'CONTENT_TYPE' => 'application/json',
             'HTTP_ACCEPT' => 'application/json',
+            'HTTP_X_XSRF_TOKEN' => $csrfToken,
         ],
         content: '{}',
     );

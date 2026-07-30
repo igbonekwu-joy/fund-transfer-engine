@@ -21,10 +21,25 @@ class LaravelClient {
         this.setupInterceptors();
     }
 
+    private getCookie(name: string): string | null {
+        const match = document.cookie.match(new RegExp("(?:^|; )" + name + "=([^;]*)"));
+        return match ? decodeURIComponent(match[1]) : null;
+    }
+
     private setupInterceptors(): void {
         // Request interceptor - Add auth token to all requests
         this.axiosInstance.interceptors.request.use(
             (config) => {
+                const method = (config.method ?? "GET").toUpperCase();
+
+                if (["POST", "PUT", "PATCH", "DELETE"].includes(method)) {
+                    const token = this.getCookie("XSRF-TOKEN");
+                    if (token) {
+                        config.headers = config.headers ?? {};
+                        config.headers["X-XSRF-TOKEN"] = token;
+                    }
+                }
+
                 return config;
             },
             (error) => {

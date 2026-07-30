@@ -26,7 +26,8 @@ class AuthController extends Controller
             'user' => $result['user'],
         ], 201)
             ->cookie('access_token', $result['access_token'], 15, '/', null, true, true, false, 'None')
-            ->cookie('refresh_token', $result['refresh_token'], 60 * 24 * 7, '/api/v1/auth/refresh', null, true, true, false, 'None');
+            ->cookie('refresh_token', $result['refresh_token'], 60 * 24 * 7, '/api/v1/auth/refresh', null, true, true, false, 'None')
+            ->cookie('XSRF-TOKEN', $result['csrf_token'], 60 * 24 * 7, '/', null, true, false, false, 'None');
     }
 
     public function refresh(Request $request): JsonResponse
@@ -37,7 +38,8 @@ class AuthController extends Controller
 
         return response()->json(['message' => 'Token refreshed.'])
             ->cookie('access_token', $result['access_token'], 15, '/', null, true, true, false, 'None')
-            ->cookie('refresh_token', $result['refresh_token'], 60 * 24 * 7, '/api/v1/auth/refresh', null, true, true, false, 'None');
+            ->cookie('refresh_token', $result['refresh_token'], 60 * 24 * 7, '/api/v1/auth/refresh', null, true, true, false, 'None')
+            ->cookie('XSRF-TOKEN', $result['csrf_token'], 60 * 24 * 7, '/', null, true, false, false, 'None');
     }
 
     public function login(LoginRequest $request): JsonResponse
@@ -52,14 +54,18 @@ class AuthController extends Controller
             'user' => $user['user'],
         ], 200)
             ->cookie('access_token', $user['access_token'], 15, '/', null, true, true, false, 'None')
-            ->cookie('refresh_token', $user['refresh_token'], 60 * 24 * 7, '/api/v1/auth/refresh', null, true, true, false, 'None');
+            ->cookie('refresh_token', $user['refresh_token'], 60 * 24 * 7, '/api/v1/auth/refresh', null, true, true, false, 'None')
+            ->cookie('XSRF-TOKEN', $user['csrf_token'], 60 * 24 * 7, '/', null, true, false, false, 'None');
     }
 
     public function logout(Request $request): JsonResponse
     {
         $this->auth->logout($request);
 
-        return response()->json(['message' => 'User logged out successfully.']);
+        return response()->json(['message' => 'User logged out successfully.'])
+            ->cookie('XSRF-TOKEN', '', -1, '/', null, true, false, false, 'None')
+            ->cookie('access_token', '', -1, '/', null, true, true, false, 'None')
+            ->cookie('refresh_token', '', -1, '/api/v1/auth/refresh', null, true, true, false, 'None');
     }
 
     public function currentUser(Request $request): JsonResponse
