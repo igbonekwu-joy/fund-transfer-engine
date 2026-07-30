@@ -44,7 +44,19 @@ class LaravelClient {
 
     private isRefreshExempt(url?: string): boolean {
         if (!url) return false;
-        return REFRESH_EXEMPT_PATHS.some((path) => url.includes(path));
+
+        let pathname: string;
+        try {
+            pathname = new URL(url, this.axiosInstance.defaults.baseURL ?? window.location.origin).pathname;
+        } catch {
+            // Fallback for malformed/relative strings the URL constructor rejects —
+            // still strip query/hash so param values can't be mistaken for the path.
+            pathname = url.split(/[?#]/)[0];
+        }
+
+        return REFRESH_EXEMPT_PATHS.some(
+            (path) => pathname === path || pathname.endsWith(path)
+        );
     }
 
     private processQueue(error: unknown): void {
@@ -94,6 +106,8 @@ class LaravelClient {
                     !this.isRefreshExempt(originalRequest.url);
 
                 if (shouldAttemptRefresh && originalRequest) {
+                    originalRequest._retry = true;
+
                     if (this.isRefreshing) {
                         // A refresh is already in flight — queue this request
                         // and retry it once that refresh settles.
@@ -104,7 +118,6 @@ class LaravelClient {
                             .catch((queueError) => Promise.reject(queueError));
                     }
 
-                    originalRequest._retry = true;
                     this.isRefreshing = true;
 
                     try {
