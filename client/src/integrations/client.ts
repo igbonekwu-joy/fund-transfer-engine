@@ -1,11 +1,27 @@
 import axios from 'axios';
-import type { AxiosInstance, AxiosRequestConfig, AxiosError } from 'axios';
+import type { AxiosInstance, AxiosRequestConfig, AxiosError, InternalAxiosRequestConfig } from 'axios';
 import type { CurrentUser, LaravelErrorResponse } from './types';
 
 const API_URL = import.meta.env.VITE_BACKEND_URL;
 
+interface RetryableRequestConfig extends InternalAxiosRequestConfig {
+    _retry?: boolean;
+}
+
+interface QueuedRequest {
+    resolve: (value?: unknown) => void;
+    reject: (reason?: unknown) => void;
+}
+
+// Endpoints that should never trigger a refresh attempt on 401 —
+// login/register 401s mean bad credentials, and refresh 401s mean
+// the refresh token itself is dead (retrying would loop forever).
+const REFRESH_EXEMPT_PATHS = ['/auth/login', '/auth/register', '/auth/refresh'];
+
 class LaravelClient {
     private axiosInstance: AxiosInstance;
+    private isRefreshing = false;
+    private refreshQueue: QueuedRequest[] = [];
 
     constructor(baseUrl: string) {
         this.axiosInstance = axios.create({
@@ -26,8 +42,24 @@ class LaravelClient {
         return match ? decodeURIComponent(match[1]) : null;
     }
 
+    private isRefreshExempt(url?: string): boolean {
+        if (!url) return false;
+        return REFRESH_EXEMPT_PATHS.some((path) => url.includes(path));
+    }
+
+    private processQueue(error: unknown): void {
+        this.refreshQueue.forEach(({ resolve, reject }) => {
+            if (error) {
+                reject(error);
+            } else {
+                resolve();
+            }
+        });
+        this.refreshQueue = [];
+    }
+
     private setupInterceptors(): void {
-        // Request interceptor - Add auth token to all requests
+        // Request interceptor - Add CSRF token to mutating requests
         this.axiosInstance.interceptors.request.use(
             (config) => {
                 const method = (config.method ?? "GET").toUpperCase();
@@ -47,19 +79,49 @@ class LaravelClient {
             }
         );
 
-        // Response interceptor - Handle errors globally
+        // Response interceptor - Handle errors globally, refresh on 401
         this.axiosInstance.interceptors.response.use(
             (response) => {
                 return response;
             },
-            (error: AxiosError<LaravelErrorResponse>) => {
-                // Handle 401 Unauthorized - Token expired or invalid
-                if (error.response?.status === 401) {
-                    const publicPaths = ['/'];
+            async (error: AxiosError<LaravelErrorResponse>) => {
+                const originalRequest = error.config as RetryableRequestConfig | undefined;
 
-                    if (typeof window !== 'undefined' && !window.location.pathname.includes('/login') && !publicPaths.includes(window.location.pathname)) {
-                        window.location.href = '/login';
+                const shouldAttemptRefresh =
+                    error.response?.status === 401 &&
+                    originalRequest &&
+                    !originalRequest._retry &&
+                    !this.isRefreshExempt(originalRequest.url);
+
+                if (shouldAttemptRefresh && originalRequest) {
+                    if (this.isRefreshing) {
+                        // A refresh is already in flight — queue this request
+                        // and retry it once that refresh settles.
+                        return new Promise((resolve, reject) => {
+                            this.refreshQueue.push({ resolve, reject });
+                        })
+                            .then(() => this.axiosInstance(originalRequest))
+                            .catch((queueError) => Promise.reject(queueError));
                     }
+
+                    originalRequest._retry = true;
+                    this.isRefreshing = true;
+
+                    try {
+                        await this.axiosInstance.post('/auth/refresh');
+                        this.processQueue(null);
+                        return this.axiosInstance(originalRequest);
+                    } catch (refreshError) {
+                        this.processQueue(refreshError);
+                        this.redirectToLogin();
+                        return Promise.reject(refreshError);
+                    } finally {
+                        this.isRefreshing = false;
+                    }
+                }
+
+                if (error.response?.status === 401) {
+                    this.redirectToLogin();
                 }
 
                 // Extract error message from response
@@ -72,6 +134,18 @@ class LaravelClient {
                 return Promise.reject(new Error(errorMessage));
             }
         );
+    }
+
+    private redirectToLogin(): void {
+        const publicPaths = ['/'];
+
+        if (
+            typeof window !== 'undefined' &&
+            !window.location.pathname.includes('/login') &&
+            !publicPaths.includes(window.location.pathname)
+        ) {
+            window.location.href = '/login';
+        }
     }
 
     async request<T>(endpoint: string, options: AxiosRequestConfig = {}): Promise<T> {
