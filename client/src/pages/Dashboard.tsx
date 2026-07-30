@@ -14,8 +14,8 @@ const Dashboard = () => {
     const [activeNav, setActiveNav] = useState('overview');
 
     const handleNavClick = (id: string) => {
-    setActiveNav(id);
-    setSidebarOpen(false);
+        setActiveNav(id);
+        setSidebarOpen(false);
     };
 
     return (

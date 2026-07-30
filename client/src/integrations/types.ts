@@ -1,3 +1,5 @@
+import type { User } from "lucide-react";
+
 export type TxnIcon = 'coffee' | 'salary' | 'shop' | 'transfer' | 'subs' | 'ride';
 
 export interface Transaction {
@@ -36,7 +38,7 @@ export interface NavItem {
   label: string;
   icon: string;
   badge?: string;
-  route?: string;
+  action?: () => void;
 }
 
 export interface FormState {
@@ -74,4 +76,24 @@ export interface HandleAsyncOptions {
 export interface CurrentUser {
   name: string;
   email: string;
+}
+
+export type FieldType = "text" | "tel" | "email" | "date" | "select" | "textarea";
+
+export interface FieldDef {
+    key: keyof ProfileData;
+    label: string;
+    icon: typeof User;
+    type: FieldType;
+    placeholder?: string;
+    options?: string[];
+}
+
+export interface ProfileData {
+    fullName: string;
+    mobile: string;
+    gender: string;
+    dob: string;
+    email: string;
+    address: string;
 }
