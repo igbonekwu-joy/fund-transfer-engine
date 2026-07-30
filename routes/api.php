@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\ProfileController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
@@ -13,6 +14,13 @@ Route::prefix('v1')->group(function () {
             Route::post('logout', [AuthController::class, 'logout']);
             Route::get('user', [AuthController::class, 'currentUser']);
         });
+    });
+
+    Route::middleware('auth:sanctum')->group(function () {
+        Route::prefix('user')->group(function () {
+            Route::post('profile', [ProfileController::class, 'store']);
+        });
+
     });
 
 });

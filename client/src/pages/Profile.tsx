@@ -8,10 +8,14 @@ import {
     Users as GenderIcon,
     Check,
     Pencil,
+    CreditCard,
 } from "lucide-react";
 import Sidebar from "@/components/Sidebar";
 import Topbar from "@/components/Topbar";
 import type { FieldDef, ProfileData } from "@/integrations/types";
+import { useAuth } from "@/contexts/AuthContext";
+import { handleAsync } from "@/lib/handleAsync";
+import { connect } from "@/integrations/client";
 
 const FIELD_DEFS: FieldDef[] = [
     { key: "fullName", label: "Full name", icon: User, type: "text", placeholder: "e.g. Joy Adeyemi" },
@@ -29,12 +33,12 @@ const FIELD_DEFS: FieldDef[] = [
 ];
 
 const INITIAL_PROFILE: ProfileData = {
-    fullName: "Joy Adeyemi",
-    mobile: "0803 456 7890",
-    gender: "Female",
-    dob: "1999-04-12",
-    email: "joy@kori.app",
-    address: "14 Adeola Odeku Street, Victoria Island, Lagos",
+    fullName: "",
+    mobile: "",
+    gender: "",
+    dob: "",
+    email: "",
+    address: "",
 };
 
 // function generateNuban(): string {
@@ -49,6 +53,7 @@ const INITIAL_PROFILE: ProfileData = {
 // }
 
 const ProfilePage = () => {
+    const { user } = useAuth();
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [profile, setProfile] = useState<ProfileData>(INITIAL_PROFILE);
     const [draft, setDraft] = useState<ProfileData>(INITIAL_PROFILE);
@@ -65,16 +70,35 @@ const ProfilePage = () => {
         setSidebarOpen(false);
     };
 
+    useEffect(() => {
+        if (!user) {
+            return;
+        }
+
+        const userProfile: ProfileData = {
+            fullName: user.name,
+            email: user.email,
+            mobile: user.phone || "",
+            gender: user.gender || "",
+            dob: user.dob || "",
+            address: user.address || "",
+        };
+        setProfile(userProfile);
+        setDraft(userProfile);
+    }, [user]);
+
     useEffect(() => () => {
         if (intervalRef.current) clearInterval(intervalRef.current);
     }, []);
 
     function formatLocalDate(dateStr: string): string {
-        const [year, month, day] = dateStr.split("-").map(Number);
+        const dateOnly = dateStr.split(" ")[0];
+        const [year, month, day] = dateOnly.split("-").map(Number);
+
         return new Date(year, month - 1, day).toLocaleDateString(undefined, {
-            year: "numeric",
-            month: "long",
             day: "numeric",
+            month: "long",
+            year: "numeric",
         });
     }
 
@@ -114,8 +138,18 @@ const ProfilePage = () => {
         setEditing(false);
     };
 
-    const saveChanges = (e: React.FormEvent) => {
+    const saveChanges = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        await handleAsync(
+            () => connect.updateProfile(draft),
+            {
+                successMessage: 'Success!',
+                errorMessage: 'Something went terribly wrong',
+                onSuccess: () => '',
+            }
+        );
+
         setProfile(draft);
         setEditing(false);
         setSavedFlash(true);
@@ -128,6 +162,11 @@ const ProfilePage = () => {
         .slice(0, 2)
         .map((w) => w[0]?.toUpperCase())
         .join("");
+
+    function groupDigits(accountNumber: string): import("react").ReactNode {
+        return accountNumber.replace(/(\d{4})(?=\d)/g, "$1 ");
+        // throw new Error("Function not implemented.");
+    }
 
     return (
         <div className="app">
@@ -159,19 +198,19 @@ const ProfilePage = () => {
                         <p className="identity-email">{profile.email || "No email on file"}</p>
 
                         <div className="acct-block">
-                            {/* <p className="acct-block-label">
+                            <p className="acct-block-label">
                                 <CreditCard /> Account number
                             </p>
                             <div className="acct-number-row">
-                                <span className={`acct-number${accountNumber ? " set" : ""}`}>
-                                    {accountNumber ? groupDigits(accountNumber) : "Not generated"}
+                                <span className={`acct-number${user?.account_number ? " set" : ""}`}>
+                                    {user?.account_number ? groupDigits(user?.account_number) : "Complete your profile to get an account number"}
                                 </span>
-                                {accountNumber && !rolling && (
+                                {/* {accountNumber && !rolling && (
                                     <button className="acct-copy-btn" onClick={handleCopy} aria-label="Copy account number">
                                         {copied ? <Check /> : <Copy />}
                                     </button>
-                                )}
-                            </div> */}
+                                )} */}
+                            </div>
                             {/* <button
                                 className={`generate-btn${rolling ? " spin" : ""}`}
                                 onClick={handleGenerate}
