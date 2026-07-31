@@ -214,7 +214,7 @@ class LaravelClient {
         return this.request<{ message: string }>('/auth/logout', { method: 'POST' });
     }
 
-    async updateProfile(data: any): Promise<{ user: CurrentUser; message: string; }> {
+    async updateProfile(data: { fullName: string; email: string; mobile: string; address: string; dob: string; gender: string; }): Promise<{ user: CurrentUser; message: string; }> {
         const response = await this.request<{ user: CurrentUser; message: string }>('/user/profile', {
             method: 'POST',
             data,
