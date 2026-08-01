@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+// import { useNavigate } from 'react-router-dom';
 import Icon from '@/components/Icon';
 import Sidebar from '@/components/Sidebar';
 import Topbar from '@/components/Topbar';
@@ -21,13 +21,13 @@ const Kyc = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeNav, setActiveNav] = useState('tier1');
   const [kycStatus, setKycStatus] = useState<KycStatus | null>(null);
-  const [loading, setLoading] = useState(true);
+  // const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [tier1Form, setTier1Form] = useState(initialTier1);
   const [tier2Form, setTier2Form] = useState(initialTier2);
   const [tier3Consent, setTier3Consent] = useState(false);
 
-  const navigate = useNavigate();
+  // const navigate = useNavigate();
 
   const tier1Complete = useMemo(
     () => Boolean(kycStatus?.bvn_verified || kycStatus?.nin_verified),
@@ -48,18 +48,19 @@ const Kyc = () => {
   const tier3Enabled = tier2Complete;
 
   const loadStatus = async () => {
-    setLoading(true);
+    // setLoading(true);
     try {
       const response = await connect.getKycStatus();
       setKycStatus(response.kyc);
     } catch {
       setKycStatus(null);
     } finally {
-      setLoading(false);
+      // setLoading(false);
     }
   };
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void loadStatus();
   }, []);
 
@@ -164,7 +165,7 @@ const Kyc = () => {
                     }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-                      <Icon name={item.label === 'Tier 1' ? 'shield' : item.label === 'Tier 2' ? 'card' : 'stats'} />
+                      <Icon className="h-5 w-5" name={item.label === 'Tier 1' ? 'shield' : item.label === 'Tier 2' ? 'card' : 'stats'} />
                       <div>
                         <div style={{ fontWeight: 600, fontSize: 15 }}>{item.label}</div>
                         <div style={{ color: 'var(--text-secondary)', fontSize: 12 }}>{item.note}</div>

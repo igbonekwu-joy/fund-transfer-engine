@@ -14,9 +14,9 @@ export const secondaryNav: NavItem[] = [
 ];
 
 export const kycNav: NavItem[] = [
-  { id: 'tier1', label: 'Tier 1', icon: 'shield' },
-  { id: 'tier2', label: 'Tier 2', icon: 'card' },
-  { id: 'tier3', label: 'Tier 3', icon: 'stats' },
+  { id: 'tier1', label: 'Verification', icon: 'shield' },
+//   { id: 'tier2', label: 'Tier 2', icon: 'card' },
+//   { id: 'tier3', label: 'Tier 3', icon: 'stats' },
 ];
 
 export const spendData: SpendPoint[] = [
