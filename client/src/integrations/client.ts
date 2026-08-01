@@ -1,6 +1,6 @@
 import axios from 'axios';
 import type { AxiosInstance, AxiosRequestConfig, AxiosError, InternalAxiosRequestConfig } from 'axios';
-import type { CurrentUser, LaravelErrorResponse } from './types';
+import type { CurrentUser, KycStatus, LaravelErrorResponse } from './types';
 
 const API_URL = import.meta.env.VITE_BACKEND_URL;
 
@@ -185,6 +185,17 @@ class LaravelClient {
 
     async getCurrentUser(): Promise<{ user: CurrentUser }> {
         return this.request<{ user: CurrentUser }>('/auth/user');
+    }
+
+    async getKycStatus(): Promise<{ kyc: KycStatus }> {
+        return this.request<{ kyc: KycStatus }>('/user/kyc');
+    }
+
+    async submitKyc(data: Record<string, unknown>): Promise<{ message: string; kyc: KycStatus }> {
+        return this.request<{ message: string; kyc: KycStatus }>('/user/kyc', {
+            method: 'POST',
+            data,
+        });
     }
 
     async signUp(email: string, password: string, confirmPassword: string, name: string): Promise<{ user: CurrentUser; token: string; message: string; }> {

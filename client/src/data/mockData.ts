@@ -13,6 +13,12 @@ export const secondaryNav: NavItem[] = [
   { id: 'logout', label: 'Log out', icon: 'logout' },
 ];
 
+export const kycNav: NavItem[] = [
+  { id: 'tier1', label: 'Verification', icon: 'shield' },
+//   { id: 'tier2', label: 'Tier 2', icon: 'card' },
+//   { id: 'tier3', label: 'Tier 3', icon: 'stats' },
+];
+
 export const spendData: SpendPoint[] = [
   { day: 'Mon', value: 32 },
   { day: 'Tue', value: 54 },

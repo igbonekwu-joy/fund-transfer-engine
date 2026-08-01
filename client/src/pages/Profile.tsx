@@ -28,7 +28,7 @@ const FIELD_DEFS: FieldDef[] = [
         options: ["Male", "Female", "Prefer not to say"],
     },
     { key: "dob", label: "Date of birth", icon: Calendar, type: "date" },
-    { key: "email", label: "Email address", icon: Mail, type: "email", placeholder: "e.g. joy@kori.app" },
+    { key: "email", label: "Email address", icon: Mail, type: "email", placeholder: "e.g. joy@fund.app" },
     { key: "address", label: "Address", icon: MapPin, type: "textarea", placeholder: "Street, city, state" },
 ];
 
@@ -53,6 +53,7 @@ const INITIAL_PROFILE: ProfileData = {
 // }
 
 const ProfilePage = () => {
+    const appName = import.meta.env.VITE_APP_NAME;
     const { user } = useAuth();
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [profile, setProfile] = useState<ProfileData>(INITIAL_PROFILE);
@@ -183,7 +184,7 @@ const ProfilePage = () => {
 
                 <div className="topbar" style={{ marginBottom: 22 }}>
                     <div className="greeting">
-                        <p className="greeting-eyebrow">Kori · Account</p>
+                        <p className="greeting-eyebrow">{appName} · Account</p>
                         <h1 className="greeting-title">Profile</h1>
                     </div>
                     <div className="profile-toast" style={{ opacity: savedFlash ? 1 : 0 }}>
