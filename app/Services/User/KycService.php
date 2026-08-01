@@ -12,6 +12,11 @@ use Illuminate\Validation\ValidationException;
 
 class KycService
 {
+    /**
+     * Submit KYC verification for a user based on the provided request data.
+     *
+     * @return array<string, mixed>
+     */
     public function submit(User $user, KycRequest $request): array
     {
         $tier = $this->parseTier($request->tier);
@@ -35,6 +40,11 @@ class KycService
         });
     }
 
+    /**
+     * Get the KYC verification status for a user.
+     *
+     * @return array<string, mixed>
+     */
     public function getVerification(User $user): array
     {
         $verification = $user->kycVerification;
@@ -55,6 +65,11 @@ class KycService
         return $verification->toApiArray();
     }
 
+    /**
+     * Submit a Tier 1 KYC verification.
+     *
+     * @return array<string, mixed>
+     */
     private function submitTier1(KycVerification $verification, KycRequest $request): array
     {
         $provider = $request->string('provider')->toString();
@@ -124,6 +139,7 @@ class KycService
         return $verification->toApiArray();
     }
 
+    /** @return array<string, mixed> */
     private function submitTier2(KycVerification $verification, KycRequest $request): array
     {
         if (! $verification->exists || $verification->status !== 'approved' || $verification->tier < 1) {
@@ -132,7 +148,7 @@ class KycService
             ]);
         }
 
-        if ($verification->tier >= 2 && $verification->status === 'approved') {
+        if ($verification->tier >= 2) {
             return $verification->toApiArray();
         }
 
@@ -168,6 +184,7 @@ class KycService
         return $verification->toApiArray();
     }
 
+    /** @return array<string, mixed> */
     private function submitTier3(KycVerification $verification, KycRequest $request): array
     {
         if (! $verification->exists || $verification->status !== 'approved' || $verification->tier < 2) {
@@ -176,7 +193,7 @@ class KycService
             ]);
         }
 
-        if ($verification->tier >= 3 && $verification->status === 'approved') {
+        if ($verification->tier >= 3) {
             return $verification->toApiArray();
         }
 
