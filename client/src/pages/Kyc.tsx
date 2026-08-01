@@ -36,7 +36,10 @@ const Kyc = () => {
     );
 
     const tier2Complete = useMemo(
-        () => Boolean(kycStatus?.tier === 'tier2' || kycStatus?.tier === 'tier3'),
+        () => Boolean(
+            (kycStatus?.tier === 'tier2' || kycStatus?.tier === 'tier3') &&
+            kycStatus?.status === 'approved'
+        ),
         [kycStatus]
     );
 
