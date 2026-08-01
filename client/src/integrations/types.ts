@@ -83,6 +83,19 @@ export interface CurrentUser {
   account_number: string | null;
 }
 
+export type KycTier = 'tier1' | 'tier2' | 'tier3' | null;
+
+export interface KycStatus {
+  tier: KycTier;
+  status: string;
+  provider: 'nin' | 'bvn' | null;
+  bvn_verified: boolean;
+  nin_verified: boolean;
+  verified_at: string | null;
+  rejection_reason: string | null;
+  provider_response: Record<string, unknown> | null;
+}
+
 export type FieldType = "text" | "tel" | "email" | "date" | "select" | "textarea";
 
 export interface FieldDef {

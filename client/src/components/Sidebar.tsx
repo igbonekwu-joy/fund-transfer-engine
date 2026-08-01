@@ -1,8 +1,10 @@
+import { useEffect, useState } from 'react';
 import type { FC } from 'react';
 import Icon, { type IconName } from '@/components/Icon';
-import { primaryNav, secondaryNav } from '@/data/mockData';
+import { kycNav, primaryNav, secondaryNav } from '@/data/mockData';
 import { handleAsync } from '@/lib/handleAsync';
 import { connect } from '@/integrations/client';
+import type { KycStatus } from '@/integrations/types';
 import { useNavigate } from 'react-router-dom';
 
 interface SidebarProps {
@@ -14,6 +16,33 @@ interface SidebarProps {
 const Sidebar: FC<SidebarProps> = ({ isOpen, activeNav, onNavClick }) => {
     const appName = import.meta.env.VITE_APP_NAME;
     const navigate = useNavigate();
+    const [kycStatus, setKycStatus] = useState<KycStatus | null>(null);
+
+    const tier1Approved = Boolean(kycStatus?.bvn_verified || kycStatus?.nin_verified);
+    const tier2Approved = tier1Approved && (kycStatus?.tier === 'tier2' || kycStatus?.tier === 'tier3') && kycStatus?.status === 'approved';
+    const tier2Enabled = tier1Approved;
+    const tier3Enabled = tier2Approved;
+
+    useEffect(() => {
+        let cancelled = false;
+
+        (async () => {
+            try {
+                const result = await connect.getKycStatus();
+                if (!cancelled) {
+                    setKycStatus(result.kyc);
+                }
+            } catch {
+                if (!cancelled) {
+                    setKycStatus(null);
+                }
+            }
+        })();
+
+        return () => {
+            cancelled = true;
+        };
+    }, []);
 
     const handleLogout = async () => {
         await handleAsync(
@@ -56,6 +85,34 @@ const Sidebar: FC<SidebarProps> = ({ isOpen, activeNav, onNavClick }) => {
             {item.badge && <span className="nav-badge">{item.badge}</span>}
           </button>
         ))}
+      </nav>
+
+      <div className="nav-label">KYC</div>
+      <nav className="nav">
+        {kycNav.map((item) => {
+          const disabled = item.id === 'tier2'
+            ? !tier2Enabled
+            : item.id === 'tier3'
+              ? !tier3Enabled
+              : false;
+
+          return (
+            <button
+              key={item.id}
+              className={`nav-item${activeNav === item.id ? ' active' : ''}${disabled ? ' disabled' : ''}`}
+              type="button"
+              onClick={() => {
+                if (disabled) return;
+                navigate('/kyc');
+                onNavClick(item.id);
+              }}
+            >
+              <Icon name={item.icon as IconName} />
+              {item.label}
+              {disabled && <span className="nav-badge">Locked</span>}
+            </button>
+          );
+        })}
       </nav>
 
       <div className="nav-label">Account</div>

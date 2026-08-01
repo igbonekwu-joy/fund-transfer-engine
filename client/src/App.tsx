@@ -9,6 +9,7 @@ import { AuthProvider } from './contexts/AuthContext';
 const Register = lazy(() => import('@/pages/Register'));
 const Login = lazy(() => import('@/pages/Login'));
 const Dashboard = lazy(() => import('@/pages/Dashboard'));
+const Kyc = lazy(() => import('@/pages/Kyc'));
 function App() {
   const queryClient = new QueryClient();
 
@@ -34,6 +35,11 @@ function App() {
                             <Route path="/profile" element={
                                 <ProtectedRoute>
                                     <Profile />
+                                </ProtectedRoute>
+                            } />
+                            <Route path="/kyc" element={
+                                <ProtectedRoute>
+                                    <Kyc />
                                 </ProtectedRoute>
                             } />
                         </Routes>
