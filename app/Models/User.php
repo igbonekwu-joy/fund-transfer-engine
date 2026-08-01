@@ -69,6 +69,11 @@ class User extends Authenticatable
             : $initials;
     }
 
+    public function kycVerification()
+    {
+        return $this->hasOne(KycVerification::class);
+    }
+
     /**
      * @return array{
      *     name: string,
