@@ -81,6 +81,7 @@ export interface CurrentUser {
   dob: string | null;
   gender: string | null;
   account_number: string | null;
+  initials: string | null;
 }
 
 export type KycTier = 'tier1' | 'tier2' | 'tier3' | null;

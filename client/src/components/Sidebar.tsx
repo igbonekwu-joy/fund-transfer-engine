@@ -6,6 +6,7 @@ import { handleAsync } from '@/lib/handleAsync';
 import { connect } from '@/integrations/client';
 import type { KycStatus } from '@/integrations/types';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -14,6 +15,7 @@ interface SidebarProps {
 }
 
 const Sidebar: FC<SidebarProps> = ({ isOpen, activeNav, onNavClick }) => {
+    const { user } = useAuth();
     const appName = import.meta.env.VITE_APP_NAME;
     const navigate = useNavigate();
     const [kycStatus, setKycStatus] = useState<KycStatus | null>(null);
@@ -55,6 +57,7 @@ const Sidebar: FC<SidebarProps> = ({ isOpen, activeNav, onNavClick }) => {
             );
 
     }
+
     return (
         <aside className={`sidebar${isOpen ? ' open' : ''}`} id="sidebar" style={{ "overflowY": "auto"}}>
             <div className="brand">
@@ -148,9 +151,9 @@ const Sidebar: FC<SidebarProps> = ({ isOpen, activeNav, onNavClick }) => {
             </div>
 
             <div className="user-chip">
-                <div className="avatar">JA</div>
+                <div className="avatar">{ user?.initials }</div>
                 <div>
-                <div className="user-chip-name">Joy Adeyemi</div>
+                <div className="user-chip-name">{ user?.name }</div>
                 <div className="user-chip-role">Personal account</div>
                 </div>
                 <button className="user-chip-more">
