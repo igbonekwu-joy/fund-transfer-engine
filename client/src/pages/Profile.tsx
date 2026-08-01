@@ -83,6 +83,7 @@ const ProfilePage = () => {
             dob: user.dob || "",
             address: user.address || "",
         };
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setProfile(userProfile);
         setDraft(userProfile);
     }, [user]);

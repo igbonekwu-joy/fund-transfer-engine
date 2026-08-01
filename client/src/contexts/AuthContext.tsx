@@ -34,6 +34,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     useEffect(() => {
         if (isPublicRoute()) return;
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         refreshUser();
     }, [refreshUser]);
     return (
@@ -43,6 +44,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     );
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useAuth() {
     const context = useContext(AuthContext);
     if (context === null) {
