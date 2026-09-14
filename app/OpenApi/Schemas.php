@@ -1,0 +1,135 @@
+<?php
+
+namespace App\OpenApi;
+
+use OpenApi\Attributes as OA;
+
+#[OA\Schema(
+    schema: 'User',
+    required: ['name', 'email', 'initials'],
+    properties: [
+        new OA\Property(property: 'name', type: 'string', example: 'Joy Adeyemi'),
+        new OA\Property(property: 'email', type: 'string', format: 'email', example: 'joy@example.com'),
+        new OA\Property(property: 'phone', type: 'string', nullable: true, example: '08012345678'),
+        new OA\Property(property: 'dob', type: 'string', nullable: true, example: '1990-01-15'),
+        new OA\Property(property: 'gender', type: 'string', nullable: true, example: 'female'),
+        new OA\Property(property: 'address', type: 'string', nullable: true, example: '12 Admiralty Way, Lagos'),
+        new OA\Property(property: 'account_number', type: 'string', nullable: true, example: '0123456789'),
+        new OA\Property(property: 'initials', type: 'string', example: 'JA'),
+    ],
+    type: 'object',
+)]
+#[OA\Schema(
+    schema: 'MessageResponse',
+    required: ['message'],
+    properties: [
+        new OA\Property(property: 'message', type: 'string'),
+    ],
+    type: 'object',
+)]
+#[OA\Schema(
+    schema: 'AuthUserResponse',
+    required: ['message', 'user'],
+    properties: [
+        new OA\Property(property: 'message', type: 'string'),
+        new OA\Property(property: 'user', ref: '#/components/schemas/User'),
+    ],
+    type: 'object',
+)]
+#[OA\Schema(
+    schema: 'CurrentUserResponse',
+    required: ['user'],
+    properties: [
+        new OA\Property(property: 'user', ref: '#/components/schemas/User'),
+    ],
+    type: 'object',
+)]
+#[OA\Schema(
+    schema: 'LoginRequest',
+    required: ['email', 'password'],
+    properties: [
+        new OA\Property(property: 'email', type: 'string', format: 'email'),
+        new OA\Property(property: 'password', type: 'string', format: 'password', minLength: 8),
+    ],
+    type: 'object',
+)]
+#[OA\Schema(
+    schema: 'RegisterRequest',
+    required: ['name', 'email', 'password', 'password_confirmation'],
+    properties: [
+        new OA\Property(property: 'name', type: 'string', maxLength: 255),
+        new OA\Property(property: 'email', type: 'string', format: 'email', maxLength: 255),
+        new OA\Property(property: 'password', type: 'string', format: 'password', minLength: 8),
+        new OA\Property(property: 'password_confirmation', type: 'string', format: 'password'),
+    ],
+    type: 'object',
+)]
+#[OA\Schema(
+    schema: 'ProfileRequest',
+    required: ['fullName', 'mobile', 'address', 'dob'],
+    properties: [
+        new OA\Property(property: 'fullName', type: 'string', maxLength: 255),
+        new OA\Property(property: 'gender', type: 'string', nullable: true, maxLength: 255),
+        new OA\Property(property: 'mobile', type: 'string', maxLength: 255),
+        new OA\Property(property: 'address', type: 'string', maxLength: 255),
+        new OA\Property(property: 'dob', type: 'string', format: 'date', example: '1990-01-15'),
+    ],
+    type: 'object',
+)]
+#[OA\Schema(
+    schema: 'Kyc',
+    properties: [
+        new OA\Property(property: 'tier', type: 'string', example: 'tier1'),
+        new OA\Property(property: 'status', type: 'string', example: 'verified'),
+        new OA\Property(property: 'provider', type: 'string', nullable: true, example: 'nin'),
+        new OA\Property(property: 'bvn_verified', type: 'boolean'),
+        new OA\Property(property: 'nin_verified', type: 'boolean'),
+        new OA\Property(property: 'verified_at', type: 'string', nullable: true),
+        new OA\Property(property: 'rejection_reason', type: 'string', nullable: true),
+        new OA\Property(property: 'provider_response', type: 'object', nullable: true),
+    ],
+    type: 'object',
+)]
+#[OA\Schema(
+    schema: 'KycResponse',
+    required: ['kyc'],
+    properties: [
+        new OA\Property(property: 'kyc', ref: '#/components/schemas/Kyc', nullable: true),
+    ],
+    type: 'object',
+)]
+#[OA\Schema(
+    schema: 'KycSubmitResponse',
+    required: ['message', 'kyc'],
+    properties: [
+        new OA\Property(property: 'message', type: 'string'),
+        new OA\Property(property: 'kyc', ref: '#/components/schemas/Kyc'),
+    ],
+    type: 'object',
+)]
+#[OA\Schema(
+    schema: 'KycRequest',
+    required: ['tier'],
+    properties: [
+        new OA\Property(property: 'tier', type: 'string', enum: ['tier1', 'tier2', 'tier3']),
+        new OA\Property(property: 'provider', type: 'string', enum: ['nin', 'bvn'], description: 'Required for tier1'),
+        new OA\Property(property: 'id_number', type: 'string', pattern: '^\d{11}$', description: 'Required for tier1'),
+        new OA\Property(property: 'supporting_document_type', type: 'string', enum: ['passport', 'utility_bill', 'bank_statement'], description: 'Required for tier2'),
+        new OA\Property(property: 'supporting_document_value', type: 'string', maxLength: 255, description: 'Required for tier2'),
+        new OA\Property(property: 'tier3_consent', type: 'boolean', description: 'Required for tier3'),
+    ],
+    type: 'object',
+)]
+#[OA\Schema(
+    schema: 'ValidationError',
+    properties: [
+        new OA\Property(property: 'message', type: 'string', example: 'The given data was invalid.'),
+        new OA\Property(
+            property: 'errors',
+            type: 'object',
+            example: ['email' => ['The email has already been taken.']],
+        ),
+    ],
+    type: 'object',
+)]
+class Schemas {}

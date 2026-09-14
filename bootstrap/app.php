@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\AttachTokenFromCookie;
+use App\Http\Middleware\RestrictSwaggerDocumentation;
 use App\Http\Middleware\SlidingWindowRateLimit;
 use App\Http\Middleware\VerifyXsrfToken;
 use Illuminate\Foundation\Application;
@@ -20,6 +21,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->appendToGroup('api', VerifyXsrfToken::class);
         $middleware->alias([
             'sliding.throttle' => SlidingWindowRateLimit::class,
+            'swagger.access' => RestrictSwaggerDocumentation::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
