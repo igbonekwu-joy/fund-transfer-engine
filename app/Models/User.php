@@ -3,11 +3,13 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Enums\AccountType;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -32,7 +34,6 @@ use Laravel\Sanctum\HasApiTokens;
  * @property string|null $dob
  * @property string|null $gender
  * @property string|null $address
- * @property string|null $account_number
  */
 #[Fillable(['name', 'email', 'password', 'gender', 'phone', 'address', 'dob'])]
 #[Hidden(['password', 'two_factor_secret', 'two_factor_recovery_codes', 'remember_token'])]
@@ -79,6 +80,24 @@ class User extends Authenticatable
     }
 
     /**
+     * @return HasMany<Account, $this>
+     */
+    public function accounts(): HasMany
+    {
+        return $this->hasMany(Account::class);
+    }
+
+    /**
+     * Primary NGN user wallet.
+     *
+     * @return HasOne<Account, $this>
+     */
+    public function account(): HasOne
+    {
+        return $this->hasOne(Account::class)->where('type', AccountType::User);
+    }
+
+    /**
      * @return array{
      *     name: string,
      *     email: string,
@@ -99,7 +118,7 @@ class User extends Authenticatable
             'dob' => $this->dob,
             'gender' => $this->gender,
             'address' => $this->address,
-            'account_number' => $this->account_number,
+            'account_number' => $this->account?->account_number,
             'initials' => $this->initials(),
         ];
     }

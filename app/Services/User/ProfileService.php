@@ -2,6 +2,9 @@
 
 namespace App\Services\User;
 
+use App\Enums\AccountStatus;
+use App\Enums\AccountType;
+use App\Models\Account;
 use App\Models\User;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
@@ -9,7 +12,7 @@ use Illuminate\Http\Request;
 class ProfileService
 {
     /**
-     * @return array{user: array<string, string>}
+     * @return array{user: array<string, string|null>}
      */
     public function update(User $user, Request $request): array
     {
@@ -19,18 +22,18 @@ class ProfileService
             'gender' => $request->gender,
             'address' => $request->address,
             'dob' => $request->dob,
-        ]);
+        ])->save();
 
-        if (! $user->account_number) {
-            $this->generateAccountNumber($user);
+        if ($user->account === null) {
+            $this->createPrimaryAccount($user);
         }
 
         return [
-            'user' => $user->toApiArray(),
+            'user' => $user->load('account')->toApiArray(),
         ];
     }
 
-    private function generateAccountNumber(User $user): string
+    private function createPrimaryAccount(User $user): Account
     {
         $maxAttempts = 5;
 
@@ -38,9 +41,13 @@ class ProfileService
             $accountNumber = $this->buildAccountNumber();
 
             try {
-                $user->forceFill(['account_number' => $accountNumber])->save();
-
-                return $accountNumber;
+                return $user->account()->create([
+                    'type' => AccountType::User,
+                    'status' => AccountStatus::Active,
+                    'currency' => 'NGN',
+                    'account_number' => $accountNumber,
+                    'name' => 'Primary wallet',
+                ]);
             } catch (QueryException $e) {
                 if ($this->isUniqueConstraintViolation($e) && $attempt < $maxAttempts) {
                     continue;
@@ -66,6 +73,6 @@ class ProfileService
 
     private function isUniqueConstraintViolation(QueryException $e): bool
     {
-        return $e->getCode() === '23000' || str_contains($e->getMessage(), 'Duplicate entry');
+        return $e->getCode() === '23000' || str_contains($e->getMessage(), 'Duplicate entry') || str_contains($e->getMessage(), 'UNIQUE constraint failed');
     }
 }
