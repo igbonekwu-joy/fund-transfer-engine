@@ -249,10 +249,21 @@ it('never allows more than maxAttempts concurrent logins through the sliding win
 
     $processes = [];
 
+    $probeEnv = [
+        'APP_ENV' => 'testing',
+        'REDIS_CLIENT' => 'phpredis',
+        'REDIS_HOST' => '127.0.0.1',
+        'REDIS_PORT' => '6379',
+        'REDIS_PASSWORD' => '',
+        'REDIS_URL' => '',
+    ] + $_ENV;
+
     for ($i = 0; $i < $processCount; $i++) {
-        $process = new Process([
-            'php', base_path('artisan'), 'probe:rate-limit', $uniqueKey, (string) $ipMax, (string) $emailMax, '60',
-        ]);
+        $process = new Process(
+            ['php', base_path('artisan'), 'probe:rate-limit', $uniqueKey, (string) $ipMax, (string) $emailMax, '60'],
+            base_path(),
+            $probeEnv,
+        );
         $process->start();
         $processes[] = $process;
     }
