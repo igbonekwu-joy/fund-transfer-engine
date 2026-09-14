@@ -1,4 +1,4 @@
-import type { Transaction, BudgetGoal, Bill, SpendPoint, NavItem } from '@/types';
+import type { Transaction, BudgetGoal, Bill, SpendPoint, NavItem } from '@/integrations/types';
 
 export const primaryNav: NavItem[] = [
   { id: 'overview', label: 'Overview', icon: 'grid' },
@@ -11,6 +11,12 @@ export const primaryNav: NavItem[] = [
 export const secondaryNav: NavItem[] = [
   { id: 'settings', label: 'Settings', icon: 'settings' },
   { id: 'logout', label: 'Log out', icon: 'logout' },
+];
+
+export const kycNav: NavItem[] = [
+  { id: 'tier1', label: 'Verification', icon: 'shield' },
+//   { id: 'tier2', label: 'Tier 2', icon: 'card' },
+//   { id: 'tier3', label: 'Tier 3', icon: 'stats' },
 ];
 
 export const spendData: SpendPoint[] = [

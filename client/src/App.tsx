@@ -2,25 +2,51 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { lazy, Suspense } from 'react';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
+import { Toaster } from '@/components/ui/sonner';
+import ProtectedRoute from './components/ProtectedRoute';
+import Profile from './pages/Profile';
+import { AuthProvider } from './contexts/AuthContext';
 const Register = lazy(() => import('@/pages/Register'));
 const Login = lazy(() => import('@/pages/Login'));
 const Dashboard = lazy(() => import('@/pages/Dashboard'));
+const Kyc = lazy(() => import('@/pages/Kyc'));
 function App() {
   const queryClient = new QueryClient();
 
   return (
     <QueryClientProvider client={queryClient}>
-        <TooltipProvider>
-            <BrowserRouter>
-                <Suspense fallback={null}>
-                    <Routes>
-                        <Route path="/" element={<Dashboard />} />
-                        <Route path="/login" element={<Login />} />
-                        <Route path="/register" element={<Register />} />
-                    </Routes>
-                </Suspense>
-            </BrowserRouter>
-        </TooltipProvider>
+        <AuthProvider>
+            <TooltipProvider>
+                <Toaster />
+                <BrowserRouter>
+                    <Suspense fallback={null}>
+                        <Routes>
+                            <Route path="/login" element={
+                                <ProtectedRoute>
+                                    <Login />
+                                </ProtectedRoute>} />
+                            <Route path="/register" element={<Register />} />
+
+                            <Route path="/" element={
+                                <ProtectedRoute>
+                                    <Dashboard />
+                                </ProtectedRoute>
+                            } />
+                            <Route path="/profile" element={
+                                <ProtectedRoute>
+                                    <Profile />
+                                </ProtectedRoute>
+                            } />
+                            <Route path="/kyc" element={
+                                <ProtectedRoute>
+                                    <Kyc />
+                                </ProtectedRoute>
+                            } />
+                        </Routes>
+                    </Suspense>
+                </BrowserRouter>
+            </TooltipProvider>
+        </AuthProvider>
     </QueryClientProvider>
   );
 }
