@@ -23,7 +23,7 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
       } catch {
         if (!cancelled) {
           setUser(null);
-        }
+        } 
       } finally {
         if (!cancelled) {
           setLoading(false);
