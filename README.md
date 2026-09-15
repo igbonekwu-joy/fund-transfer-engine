@@ -6,30 +6,6 @@ The ledger and peer-transfer core live at the **service layer** at the moment. A
 
 ---
 
-## Table of contents
-
-- [Stack](#stack)
-- [Requirements](#requirements)
-- [Quick start](#quick-start)
-- [Environment](#environment)
-- [Running the apps](#running-the-apps)
-- [Architecture](#architecture)
-  - [High-level layout](#high-level-layout)
-  - [Repository map](#repository-map)
-  - [Authentication](#authentication)
-  - [Domain model](#domain-model)
-  - [Double-entry ledger](#double-entry-ledger)
-  - [Peer transfer pipeline](#peer-transfer-pipeline)
-  - [Locking, deadlocks, and retries](#locking-deadlocks-and-retries)
-  - [Services](#services)
-- [HTTP API](#http-api)
-- [OpenAPI / Swagger](#openapi--swagger)
-- [Testing](#testing)
-- [Code quality and CI](#code-quality-and-ci)
-- [Current scope and gaps](#current-scope-and-gaps)
-
----
-
 ## Stack
 
 | Layer | Technology |
