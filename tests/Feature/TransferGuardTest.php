@@ -65,6 +65,22 @@ it('rejects frozen sender accounts', function () {
         ->toThrow(InvalidTransferException::class, 'Sender account is not active.');
 });
 
+it('rejects frozen recipient accounts', function () {
+    $sender = Account::factory()->create();
+    $recipient = Account::factory()->frozen()->create();
+
+    expect(fn () => app(TransferGuard::class)->assertCanTransfer($sender, $recipient, 100_00))
+        ->toThrow(InvalidTransferException::class, 'Recipient account is not active.');
+});
+
+it('rejects closed sender accounts', function () {
+    $sender = Account::factory()->closed()->create();
+    $recipient = Account::factory()->create();
+
+    expect(fn () => app(TransferGuard::class)->assertCanTransfer($sender, $recipient, 100_00))
+        ->toThrow(InvalidTransferException::class, 'Sender account is not active.');
+});
+
 it('rejects closed recipient accounts', function () {
     $sender = Account::factory()->create();
     $recipient = Account::factory()->closed()->create();

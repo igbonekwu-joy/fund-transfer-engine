@@ -131,3 +131,130 @@ it('rolls back mid-flight posting failures with zero side effects', function () 
         ->and($sender->fresh()->balanceInMinorUnits())->toBe(10_000_00)
         ->and($recipient->fresh()->balanceInMinorUnits())->toBe(0);
 });
+
+it('rejects transfers from a frozen sender without side effects', function () {
+    $sender = Account::factory()->frozen()->create();
+    $recipient = Account::factory()->create();
+
+    fundAccount($sender, 5_000_00);
+
+    assertTransferRejectedWithoutSideEffects(
+        $sender,
+        $recipient,
+        1_000_00,
+        InvalidTransferException::class,
+        'Sender account is not active.',
+        senderBalance: 5_000_00,
+        recipientBalance: 0,
+    );
+});
+
+it('rejects transfers to a closed recipient without side effects', function () {
+    $sender = Account::factory()->create();
+    $recipient = Account::factory()->closed()->create();
+
+    fundAccount($sender, 5_000_00);
+
+    assertTransferRejectedWithoutSideEffects(
+        $sender,
+        $recipient,
+        1_000_00,
+        InvalidTransferException::class,
+        'Recipient account is not active.',
+        senderBalance: 5_000_00,
+        recipientBalance: 0,
+    );
+});
+
+it('rejects currency mismatches without side effects', function () {
+    $sender = Account::factory()->currency('NGN')->create();
+    $recipient = Account::factory()->currency('USD')->create();
+
+    fundAccount($sender, 5_000_00);
+
+    assertTransferRejectedWithoutSideEffects(
+        $sender,
+        $recipient,
+        1_000_00,
+        InvalidTransferException::class,
+        'Accounts must share the same currency.',
+        senderBalance: 5_000_00,
+        recipientBalance: 0,
+    );
+});
+
+it('rejects transfers that debit the money_in system account', function () {
+    $moneyIn = Account::moneyIn();
+    $recipient = Account::factory()->create();
+
+    assertTransferRejectedWithoutSideEffects(
+        $moneyIn,
+        $recipient,
+        1_000_00,
+        InvalidTransferException::class,
+        'Sender must be a user wallet.',
+        senderBalance: $moneyIn->balanceInMinorUnits(),
+        recipientBalance: 0,
+    );
+});
+
+it('rejects transfers that credit the money_in system account', function () {
+    $sender = Account::factory()->create();
+    $moneyIn = Account::moneyIn();
+
+    fundAccount($sender, 5_000_00);
+
+    assertTransferRejectedWithoutSideEffects(
+        $sender,
+        $moneyIn,
+        1_000_00,
+        InvalidTransferException::class,
+        'Recipient must be a user wallet.',
+        senderBalance: 5_000_00,
+        recipientBalance: $moneyIn->balanceInMinorUnits(),
+    );
+});
+
+it('rejects non-positive transfer amounts without side effects', function (int $amount) {
+    $sender = Account::factory()->create();
+    $recipient = Account::factory()->create();
+
+    fundAccount($sender, 5_000_00);
+
+    assertTransferRejectedWithoutSideEffects(
+        $sender,
+        $recipient,
+        $amount,
+        InvalidTransferException::class,
+        'Amount must be a positive integer in minor units.',
+        senderBalance: 5_000_00,
+        recipientBalance: 0,
+    );
+})->with([
+    'zero' => 0,
+    'negative' => -50_00,
+]);
+
+/**
+ * @param  class-string<Throwable>  $exceptionClass
+ */
+function assertTransferRejectedWithoutSideEffects(
+    Account $from,
+    Account $to,
+    int $amount,
+    string $exceptionClass,
+    string $message,
+    int $senderBalance,
+    int $recipientBalance,
+): void {
+    $transactionsBefore = Transaction::query()->count();
+    $entriesBefore = LedgerEntry::query()->count();
+
+    expect(fn () => app(TransferService::class)->transfer($from, $to, $amount))
+        ->toThrow($exceptionClass, $message);
+
+    expect(Transaction::query()->count())->toBe($transactionsBefore)
+        ->and(LedgerEntry::query()->count())->toBe($entriesBefore)
+        ->and($from->fresh()->balanceInMinorUnits())->toBe($senderBalance)
+        ->and($to->fresh()->balanceInMinorUnits())->toBe($recipientBalance);
+}

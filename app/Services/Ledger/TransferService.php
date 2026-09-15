@@ -24,6 +24,8 @@ class TransferService
     /**
      * Move funds between two user wallets atomically.
      *
+     * Retries once on database deadlock / serialization failures.
+     *
      * @param  array<string, mixed>  $metadata
      */
     public function transfer(
@@ -66,6 +68,6 @@ class TransferService
                 TransactionStatus::Posted,
                 $metadata,
             );
-        });
+        }, 2);
     }
 }
