@@ -12,6 +12,7 @@ use App\Models\User;
 use App\Support\Ledger\BalancedLedgerWriter;
 use Database\Seeders\SystemAccountsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 uses(RefreshDatabase::class);
@@ -156,4 +157,68 @@ it('prevents updating or deleting ledger entries', function () {
 
     expect(fn () => $entry->delete())
         ->toThrow(RuntimeException::class, 'immutable');
+});
+
+it('rolls back postWithinTransaction writes with the outer database transaction', function () {
+    $wallet = Account::factory()->create();
+    $moneyIn = Account::moneyIn();
+    $writer = app(BalancedLedgerWriter::class);
+
+    try {
+        DB::transaction(function () use ($writer, $wallet, $moneyIn): void {
+            $writer->postWithinTransaction(
+                TransactionType::Deposit,
+                [
+                    [
+                        'account_id' => $moneyIn->id,
+                        'direction' => LedgerEntryDirection::Debit,
+                        'amount' => 1_000_00,
+                    ],
+                    [
+                        'account_id' => $wallet->id,
+                        'direction' => LedgerEntryDirection::Credit,
+                        'amount' => 1_000_00,
+                    ],
+                ],
+            );
+
+            throw new RuntimeException('force outer rollback');
+        });
+    } catch (RuntimeException $exception) {
+        expect($exception->getMessage())->toBe('force outer rollback');
+    }
+
+    expect(Transaction::query()->count())->toBe(0)
+        ->and(LedgerEntry::query()->count())->toBe(0)
+        ->and($wallet->fresh()->balanceInMinorUnits())->toBe(0)
+        ->and($moneyIn->fresh()->balanceInMinorUnits())->toBe(0);
+});
+
+it('allows postWithinTransaction inside an open database transaction', function () {
+    $wallet = Account::factory()->create();
+    $moneyIn = Account::moneyIn();
+    $amount = 750_00;
+
+    $transaction = DB::transaction(
+        fn (): Transaction => app(BalancedLedgerWriter::class)->postWithinTransaction(
+            TransactionType::Deposit,
+            [
+                [
+                    'account_id' => $moneyIn->id,
+                    'direction' => LedgerEntryDirection::Debit,
+                    'amount' => $amount,
+                ],
+                [
+                    'account_id' => $wallet->id,
+                    'direction' => LedgerEntryDirection::Credit,
+                    'amount' => $amount,
+                ],
+            ],
+        )
+    );
+
+    expect($transaction->isBalanced())->toBeTrue()
+        ->and($wallet->fresh()->balanceInMinorUnits())->toBe($amount)
+        ->and(Transaction::query()->count())->toBe(1)
+        ->and(LedgerEntry::query()->count())->toBe(2);
 });

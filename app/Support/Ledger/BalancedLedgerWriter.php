@@ -9,11 +9,12 @@ use App\Models\LedgerEntry;
 use App\Models\Transaction;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
+use LogicException;
 
 class BalancedLedgerWriter
 {
     /**
-     * Persist a transaction and its ledger legs only when debits equal credits.
+     * Persist a balanced ledger posting inside its own database transaction.
      *
      * @param  list<array<string, mixed>>  $entries
      * @param  array<string, mixed>  $metadata
@@ -24,6 +25,57 @@ class BalancedLedgerWriter
         TransactionStatus $status = TransactionStatus::Posted,
         array $metadata = [],
     ): Transaction {
+        return DB::transaction(
+            fn (): Transaction => $this->postWithinTransaction($type, $entries, $status, $metadata)
+        );
+    }
+
+    /**
+     * Persist a balanced ledger posting using the caller's open database transaction.
+     *
+     * Only call this inside DB::transaction(). Prefer post() when you are not
+     * coordinating locks or other work in the same unit of work.
+     *
+     * @param  list<array<string, mixed>>  $entries
+     * @param  array<string, mixed>  $metadata
+     */
+    public function postWithinTransaction(
+        TransactionType $type,
+        array $entries,
+        TransactionStatus $status = TransactionStatus::Posted,
+        array $metadata = [],
+    ): Transaction {
+        if (DB::transactionLevel() < 1) {
+            throw new LogicException('postWithinTransaction requires an open database transaction.');
+        }
+
+        $normalized = $this->normalize($entries);
+
+        $transaction = Transaction::query()->create([
+            'type' => $type,
+            'status' => $status,
+            'metadata' => $metadata === [] ? null : $metadata,
+        ]);
+
+        foreach ($normalized as $entry) {
+            LedgerEntry::query()->create([
+                'transaction_id' => $transaction->id,
+                'account_id' => $entry['account_id'],
+                'direction' => $entry['direction'],
+                'amount' => $entry['amount'],
+                'currency' => $entry['currency'],
+            ]);
+        }
+
+        return $transaction->load('ledgerEntries');
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $entries
+     * @return list<array{account_id: string, direction: LedgerEntryDirection, amount: int, currency: string}>
+     */
+    private function normalize(array $entries): array
+    {
         if (count($entries) < 2) {
             throw new InvalidArgumentException('A ledger posting requires at least two entries.');
         }
@@ -69,24 +121,6 @@ class BalancedLedgerWriter
             );
         }
 
-        return DB::transaction(function () use ($type, $status, $metadata, $normalized): Transaction {
-            $transaction = Transaction::query()->create([
-                'type' => $type,
-                'status' => $status,
-                'metadata' => $metadata === [] ? null : $metadata,
-            ]);
-
-            foreach ($normalized as $entry) {
-                LedgerEntry::query()->create([
-                    'transaction_id' => $transaction->id,
-                    'account_id' => $entry['account_id'],
-                    'direction' => $entry['direction'],
-                    'amount' => $entry['amount'],
-                    'currency' => $entry['currency'],
-                ]);
-            }
-
-            return $transaction->load('ledgerEntries');
-        });
+        return $normalized;
     }
 }
