@@ -1,6 +1,5 @@
 <?php
 
-use App\Enums\LedgerEntryDirection;
 use App\Enums\TransactionStatus;
 use App\Enums\TransactionType;
 use App\Exceptions\Ledger\InsufficientBalanceException;
@@ -21,32 +20,6 @@ uses(RefreshDatabase::class);
 beforeEach(function () {
     $this->seed(SystemAccountsSeeder::class);
 });
-
-/**
- * Credit a user wallet via the money_in system boundary.
- */
-function fundAccount(Account $wallet, int $amount): void
-{
-    $moneyIn = Account::moneyIn();
-
-    app(BalancedLedgerWriter::class)->post(
-        TransactionType::Deposit,
-        [
-            [
-                'account_id' => $moneyIn->id,
-                'direction' => LedgerEntryDirection::Debit,
-                'amount' => $amount,
-                'currency' => $wallet->currency,
-            ],
-            [
-                'account_id' => $wallet->id,
-                'direction' => LedgerEntryDirection::Credit,
-                'amount' => $amount,
-                'currency' => $wallet->currency,
-            ],
-        ],
-    );
-}
 
 it('transfers funds between two user wallets', function () {
     $sender = Account::factory()->create();

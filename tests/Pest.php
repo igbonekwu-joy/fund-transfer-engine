@@ -1,6 +1,11 @@
 <?php
 
+use App\Enums\LedgerEntryDirection;
+use App\Enums\TransactionType;
+use App\Models\Account;
+use App\Support\Ledger\BalancedLedgerWriter;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\ConcurrencyTestCase;
 use Tests\TestCase;
 
 /*
@@ -17,6 +22,10 @@ use Tests\TestCase;
 pest()->extend(TestCase::class)
     ->use(RefreshDatabase::class)
     ->in('Feature');
+
+pest()->extend(ConcurrencyTestCase::class)
+    ->use(RefreshDatabase::class)
+    ->in('Concurrency');
 
 /*
 |--------------------------------------------------------------------------
@@ -44,7 +53,28 @@ expect()->extend('toBeOne', function () {
 |
 */
 
-function something()
+/**
+ * Credit a user wallet via the money_in system boundary.
+ */
+function fundAccount(Account $wallet, int $amount): void
 {
-    // ..
+    $moneyIn = Account::moneyIn();
+
+    app(BalancedLedgerWriter::class)->post(
+        TransactionType::Deposit,
+        [
+            [
+                'account_id' => $moneyIn->id,
+                'direction' => LedgerEntryDirection::Debit,
+                'amount' => $amount,
+                'currency' => $wallet->currency,
+            ],
+            [
+                'account_id' => $wallet->id,
+                'direction' => LedgerEntryDirection::Credit,
+                'amount' => $amount,
+                'currency' => $wallet->currency,
+            ],
+        ],
+    );
 }
