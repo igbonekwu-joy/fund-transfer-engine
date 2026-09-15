@@ -48,4 +48,25 @@ class AccountFactory extends Factory
             'account_number' => null,
         ]);
     }
+
+    public function frozen(): static
+    {
+        return $this->state(fn (array $attributes): array => [
+            'status' => AccountStatus::Frozen,
+        ]);
+    }
+
+    public function closed(): static
+    {
+        return $this->state(fn (array $attributes): array => [
+            'status' => AccountStatus::Closed,
+        ]);
+    }
+
+    public function currency(string $currency): static
+    {
+        return $this->state(fn (array $attributes): array => [
+            'currency' => $currency,
+        ]);
+    }
 }
