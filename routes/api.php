@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\KycController;
 use App\Http\Controllers\Api\ProfileController;
+use App\Http\Controllers\Api\WalletController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
@@ -24,6 +25,9 @@ Route::prefix('v1')->group(function () {
             Route::post('kyc', [KycController::class, 'store']);
         });
 
+        Route::prefix('wallet')->group(function () {
+            Route::post('deposit', [WalletController::class, 'deposit']);
+            Route::post('withdraw', [WalletController::class, 'withdraw']);
+        });
     });
-
 });
