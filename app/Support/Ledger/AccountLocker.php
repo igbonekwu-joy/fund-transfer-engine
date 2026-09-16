@@ -44,4 +44,18 @@ class AccountLocker
 
         return $accounts;
     }
+
+    /**
+     * Lock a user wallet together with the money_in system boundary.
+     *
+     * Only call this inside DB::transaction().
+     *
+     * @return Collection<string, Account>
+     */
+    public function lockWithMoneyIn(Account $wallet): Collection
+    {
+        $moneyIn = Account::moneyIn();
+
+        return $this->lockPair($wallet->id, $moneyIn->id);
+    }
 }

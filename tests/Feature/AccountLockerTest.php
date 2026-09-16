@@ -3,6 +3,7 @@
 use App\Exceptions\Ledger\InvalidTransferException;
 use App\Models\Account;
 use App\Support\Ledger\AccountLocker;
+use Database\Seeders\SystemAccountsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -51,4 +52,19 @@ it('throws when both account ids are the same', function () {
     expect(fn () => DB::transaction(
         fn () => app(AccountLocker::class)->lockPair($account->id, $account->id)
     ))->toThrow(InvalidTransferException::class, 'Cannot lock the same account twice');
+});
+
+it('locks a wallet together with the money_in boundary', function () {
+    $this->seed(SystemAccountsSeeder::class);
+
+    $wallet = Account::factory()->create();
+    $moneyIn = Account::moneyIn();
+
+    $locked = DB::transaction(
+        fn () => app(AccountLocker::class)->lockWithMoneyIn($wallet)
+    );
+
+    expect($locked)->toHaveCount(2)
+        ->and($locked->get($wallet->id)->is($wallet))->toBeTrue()
+        ->and($locked->get($moneyIn->id)->is($moneyIn))->toBeTrue();
 });
