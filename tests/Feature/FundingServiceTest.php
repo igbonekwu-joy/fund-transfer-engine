@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\AccountStatus;
 use App\Enums\TransactionType;
 use App\Exceptions\Ledger\InsufficientBalanceException;
 use App\Exceptions\Ledger\InvalidTransferException;
@@ -90,6 +91,61 @@ it('rejects deposits into a frozen wallet without side effects', function () {
         ->and($wallet->fresh()->balanceInMinorUnits())->toBe(0)
         ->and($moneyIn->fresh()->balanceInMinorUnits())->toBe($moneyInBalanceBefore);
 });
+
+it('rejects withdrawals from a closed wallet without side effects', function () {
+    $wallet = Account::factory()->create();
+    $moneyIn = Account::moneyIn();
+    $funding = app(FundingService::class);
+
+    $funding->deposit($wallet, 5_000_00);
+    $wallet->update(['status' => AccountStatus::Closed]);
+
+    $transactionsBefore = Transaction::query()->count();
+    $entriesBefore = LedgerEntry::query()->count();
+
+    expect(fn () => $funding->withdraw($wallet->fresh(), 1_000_00))
+        ->toThrow(InvalidTransferException::class, 'Wallet account is not active.');
+
+    expect(Transaction::query()->count())->toBe($transactionsBefore)
+        ->and(LedgerEntry::query()->count())->toBe($entriesBefore)
+        ->and($wallet->fresh()->balanceInMinorUnits())->toBe(5_000_00)
+        ->and($moneyIn->fresh()->balanceInMinorUnits())->toBe(5_000_00);
+});
+
+it('rejects deposits when the wallet currency does not match money_in', function () {
+    $wallet = Account::factory()->currency('USD')->create();
+    $moneyIn = Account::moneyIn();
+
+    $transactionsBefore = Transaction::query()->count();
+    $entriesBefore = LedgerEntry::query()->count();
+
+    expect(fn () => app(FundingService::class)->deposit($wallet, 1_000_00))
+        ->toThrow(InvalidTransferException::class, 'Accounts must share the same currency.');
+
+    expect(Transaction::query()->count())->toBe($transactionsBefore)
+        ->and(LedgerEntry::query()->count())->toBe($entriesBefore)
+        ->and($wallet->fresh()->balanceInMinorUnits())->toBe(0)
+        ->and($moneyIn->fresh()->balanceInMinorUnits())->toBe(0);
+});
+
+it('rejects non-positive deposit amounts without side effects', function (int $amount) {
+    $wallet = Account::factory()->create();
+    $moneyIn = Account::moneyIn();
+
+    $transactionsBefore = Transaction::query()->count();
+    $entriesBefore = LedgerEntry::query()->count();
+
+    expect(fn () => app(FundingService::class)->deposit($wallet, $amount))
+        ->toThrow(InvalidTransferException::class, 'Amount must be a positive integer in minor units.');
+
+    expect(Transaction::query()->count())->toBe($transactionsBefore)
+        ->and(LedgerEntry::query()->count())->toBe($entriesBefore)
+        ->and($wallet->fresh()->balanceInMinorUnits())->toBe(0)
+        ->and($moneyIn->fresh()->balanceInMinorUnits())->toBe(0);
+})->with([
+    'zero' => 0,
+    'negative' => -50_00,
+]);
 
 it('withdraws the full wallet balance down to zero', function () {
     $wallet = Account::factory()->create();

@@ -5,8 +5,6 @@ use App\Exceptions\Ledger\InsufficientBalanceException;
 use App\Models\Account;
 use App\Models\Transaction;
 use Database\Seeders\SystemAccountsSeeder;
-use Illuminate\Process\Factory as ProcessFactory;
-use Illuminate\Process\Pool;
 
 uses()->group('concurrency');
 
@@ -20,83 +18,6 @@ beforeEach(function () {
     $this->artisan('migrate:fresh', ['--force' => true]);
     $this->seed(SystemAccountsSeeder::class);
 });
-
-/**
- * True when the default connection can honor SELECT ... FOR UPDATE across sessions.
- */
-function databaseSupportsRowLevelLocks(): bool
-{
-    return in_array(config('database.default'), ['mysql', 'mariadb', 'pgsql'], true);
-}
-
-/**
- * @return array<string, string>
- */
-function databaseEnvForWorkers(): array
-{
-    $connection = config('database.default');
-    $config = config("database.connections.{$connection}");
-
-    return [
-        'APP_ENV' => 'testing',
-        'DB_CONNECTION' => (string) $connection,
-        'DB_HOST' => (string) ($config['host'] ?? '127.0.0.1'),
-        'DB_PORT' => (string) ($config['port'] ?? '3306'),
-        'DB_DATABASE' => (string) ($config['database'] ?? ''),
-        'DB_USERNAME' => (string) ($config['username'] ?? ''),
-        'DB_PASSWORD' => (string) ($config['password'] ?? ''),
-        'DB_URL' => '',
-    ];
-}
-
-/**
- * Run transfer workers in parallel child processes.
- *
- * @param  list<array{from: string, to: string, amount: int}>  $jobs
- * @return list<array{exit_code: int, ok: bool, exception: ?string, transaction_id: ?string, stderr: string}>
- */
-function runConcurrentTransfers(array $jobs): array
-{
-    $worker = base_path('tests/bin/transfer_worker.php');
-    $env = databaseEnvForWorkers();
-    $php = PHP_BINARY;
-
-    /** @var ProcessFactory $processes */
-    $processes = app(ProcessFactory::class);
-
-    $results = $processes->concurrently(function (Pool $pool) use ($jobs, $worker, $env, $php): void {
-        foreach ($jobs as $index => $job) {
-            $pool->as((string) $index)
-                ->timeout(30)
-                ->env($env)
-                ->path(base_path())
-                ->command([
-                    $php,
-                    $worker,
-                    $job['from'],
-                    $job['to'],
-                    (string) $job['amount'],
-                ]);
-        }
-    });
-
-    $parsed = [];
-
-    foreach ($jobs as $index => $job) {
-        $result = $results[(string) $index];
-        $payload = json_decode($result->output(), true);
-
-        $parsed[] = [
-            'exit_code' => $result->exitCode() ?? 1,
-            'ok' => (bool) ($payload['ok'] ?? false),
-            'exception' => is_array($payload) ? ($payload['exception'] ?? null) : null,
-            'transaction_id' => is_array($payload) ? ($payload['transaction_id'] ?? null) : null,
-            'stderr' => $result->errorOutput(),
-        ];
-    }
-
-    return $parsed;
-}
 
 it('prevents double-spend when two concurrent transfers exhaust the sender', function () {
     $sender = Account::factory()->create();

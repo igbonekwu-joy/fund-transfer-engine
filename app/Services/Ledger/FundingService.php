@@ -77,7 +77,7 @@ class FundingService
 
             $this->guard->assertCanWithdraw($lockedWallet, $moneyIn, $amount);
 
-            if ($lockedWallet->balanceInMinorUnits() < $amount) {
+            if ($lockedWallet->balanceInMinorUnitsForUpdate() < $amount) {
                 throw new InsufficientBalanceException;
             }
 

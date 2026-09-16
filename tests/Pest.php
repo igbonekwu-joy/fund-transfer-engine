@@ -42,6 +42,8 @@ expect()->extend('toBeOne', function () {
     return $this->toBe(1);
 });
 
+require __DIR__.'/Support/concurrency.php';
+
 /*
 |--------------------------------------------------------------------------
 | Functions

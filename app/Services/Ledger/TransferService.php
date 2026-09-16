@@ -45,7 +45,7 @@ class TransferService
 
             $this->guard->assertCanTransfer($sender, $recipient, $amount);
 
-            if ($sender->balanceInMinorUnits() < $amount) {
+            if ($sender->balanceInMinorUnitsForUpdate() < $amount) {
                 throw new InsufficientBalanceException;
             }
 

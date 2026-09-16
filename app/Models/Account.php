@@ -90,13 +90,35 @@ class Account extends Model
      */
     public function balanceInMinorUnits(): int
     {
-        $credits = (int) $this->ledgerEntries()
-            ->where('direction', LedgerEntryDirection::Credit)
-            ->sum('amount');
+        return $this->calculateBalanceInMinorUnits(forUpdate: false);
+    }
 
-        $debits = (int) $this->ledgerEntries()
-            ->where('direction', LedgerEntryDirection::Debit)
-            ->sum('amount');
+    /**
+     * Current balance under row locks — use inside DB::transaction after locking the account.
+     *
+     * Locking reads avoid REPEATABLE READ snapshots that can miss just-committed ledger rows
+     * from a concurrent transfer or withdrawal.
+     */
+    public function balanceInMinorUnitsForUpdate(): int
+    {
+        return $this->calculateBalanceInMinorUnits(forUpdate: true);
+    }
+
+    private function calculateBalanceInMinorUnits(bool $forUpdate): int
+    {
+        $creditsQuery = $this->ledgerEntries()
+            ->where('direction', LedgerEntryDirection::Credit);
+
+        $debitsQuery = $this->ledgerEntries()
+            ->where('direction', LedgerEntryDirection::Debit);
+
+        if ($forUpdate) {
+            $creditsQuery->lockForUpdate();
+            $debitsQuery->lockForUpdate();
+        }
+
+        $credits = (int) $creditsQuery->sum('amount');
+        $debits = (int) $debitsQuery->sum('amount');
 
         return match ($this->type) {
             AccountType::User => $credits - $debits,

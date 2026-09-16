@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\AccountStatus;
 use App\Models\Account;
 use App\Models\User;
 use App\Services\Ledger\FundingService;
@@ -135,4 +136,50 @@ it('validates amount on deposit', function () {
 
     $response->assertStatus(422)
         ->assertJsonValidationErrors('amount');
+});
+
+it('validates negative amounts on withdraw', function () {
+    $user = User::factory()->create();
+    Account::factory()->for($user)->create();
+
+    $response = postWallet($this, $user, '/api/v1/wallet/withdraw', [
+        'amount' => -100_00,
+    ]);
+
+    $response->assertStatus(422)
+        ->assertJsonValidationErrors('amount');
+});
+
+it('rejects deposits into a frozen primary wallet', function () {
+    $user = User::factory()->create();
+    Account::factory()->for($user)->frozen()->create();
+
+    $response = postWallet($this, $user, '/api/v1/wallet/deposit', [
+        'amount' => 1_000_00,
+    ]);
+
+    $response->assertStatus(422)
+        ->assertJsonPath('message', 'Wallet account is not active.');
+});
+
+it('rejects withdrawals from a closed primary wallet', function () {
+    $user = User::factory()->create();
+    $wallet = Account::factory()->for($user)->create();
+
+    app(FundingService::class)->deposit($wallet, 5_000_00);
+    $wallet->update(['status' => AccountStatus::Closed]);
+
+    $response = postWallet($this, $user, '/api/v1/wallet/withdraw', [
+        'amount' => 1_000_00,
+    ]);
+
+    $response->assertStatus(422)
+        ->assertJsonPath('message', 'Wallet account is not active.');
+
+    expect($wallet->fresh()->balanceInMinorUnits())->toBe(5_000_00);
+});
+
+it('requires authentication to withdraw', function () {
+    $this->postJson('/api/v1/wallet/withdraw', ['amount' => 100_00])
+        ->assertUnauthorized();
 });
