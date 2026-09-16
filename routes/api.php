@@ -28,6 +28,7 @@ Route::prefix('v1')->group(function () {
         Route::prefix('wallet')->group(function () {
             Route::post('deposit', [WalletController::class, 'deposit']);
             Route::post('withdraw', [WalletController::class, 'withdraw']);
+            Route::post('transfer', [WalletController::class, 'transfer']);
         });
     });
 });

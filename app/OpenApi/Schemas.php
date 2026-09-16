@@ -155,6 +155,35 @@ use OpenApi\Attributes as OA;
     type: 'object',
 )]
 #[OA\Schema(
+    schema: 'TransferRequest',
+    required: ['account_number', 'amount'],
+    properties: [
+        new OA\Property(
+            property: 'account_number',
+            description: 'Recipient 10-digit account number',
+            type: 'string',
+            pattern: '^\d{10}$',
+            example: '0123456789',
+        ),
+        new OA\Property(
+            property: 'amount',
+            description: 'Amount in minor units (kobo)',
+            type: 'integer',
+            minimum: 1,
+            example: 250000,
+        ),
+        new OA\Property(
+            property: 'narration',
+            description: 'Optional note stored on the ledger transaction metadata',
+            type: 'string',
+            maxLength: 255,
+            nullable: true,
+            example: 'Lunch',
+        ),
+    ],
+    type: 'object',
+)]
+#[OA\Schema(
     schema: 'LedgerTransaction',
     required: ['id', 'type', 'status', 'amount', 'currency'],
     properties: [

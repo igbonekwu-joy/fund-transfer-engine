@@ -8,7 +8,7 @@ use OpenApi\Attributes as OA;
     version: '1.0.0',
     title: 'Fund Transfer Engine API',
     description: <<<'MD'
-JSON API for authentication, profile, KYC, and local wallet funding.
+JSON API for authentication, profile, KYC, local wallet funding, and peer transfers.
 
 Authentication uses Laravel Sanctum. Login, register, and refresh set httpOnly `access_token` and `refresh_token` cookies plus a non-httpOnly `XSRF-TOKEN` cookie. Protected routes also accept an `Authorization: Bearer {token}` header.
 
@@ -27,5 +27,5 @@ MD
 )]
 #[OA\Tag(name: 'Auth', description: 'Registration, login, token refresh, and session')]
 #[OA\Tag(name: 'User', description: 'Authenticated profile and KYC')]
-#[OA\Tag(name: 'Wallet', description: 'Local deposit and withdraw against the money_in ledger boundary')]
+#[OA\Tag(name: 'Wallet', description: 'Deposit, withdraw, and peer transfer for the authenticated user\'s primary wallet')]
 class OpenApiSpec {}

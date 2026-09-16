@@ -5,6 +5,7 @@ use App\Exceptions\Ledger\InvalidTransferException;
 use App\Models\Account;
 use App\Models\User;
 use App\Services\User\WalletResolver;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
@@ -36,4 +37,17 @@ it('does not resolve another users wallet as primary', function () {
 
     expect(fn () => app(WalletResolver::class)->primaryFor($other))
         ->toThrow(InvalidTransferException::class, 'User does not have a primary wallet.');
+});
+
+it('resolves a recipient wallet by account number', function () {
+    $recipient = Account::factory()->create();
+
+    $resolved = app(WalletResolver::class)->recipientByAccountNumber($recipient->account_number);
+
+    expect($resolved->is($recipient))->toBeTrue();
+});
+
+it('fails when the recipient account number does not exist', function () {
+    expect(fn () => app(WalletResolver::class)->recipientByAccountNumber('9999999999'))
+        ->toThrow(ModelNotFoundException::class);
 });

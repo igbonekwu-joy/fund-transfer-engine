@@ -6,6 +6,7 @@ use App\Enums\LedgerEntryDirection;
 use App\Enums\TransactionStatus;
 use App\Enums\TransactionType;
 use App\Exceptions\Ledger\InsufficientBalanceException;
+use App\Exceptions\Ledger\InvalidTransferException;
 use App\Models\Account;
 use App\Models\Transaction;
 use App\Support\Ledger\AccountLocker;
@@ -35,6 +36,10 @@ class TransferService
         array $metadata = [],
     ): Transaction {
         return DB::transaction(function () use ($from, $to, $amount, $metadata): Transaction {
+            if ($from->id === $to->id) {
+                throw new InvalidTransferException('Cannot transfer to the same account.');
+            }
+
             $locked = $this->locker->lockPair($from->id, $to->id);
 
             /** @var Account $sender */

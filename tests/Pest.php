@@ -43,6 +43,7 @@ expect()->extend('toBeOne', function () {
 });
 
 require __DIR__.'/Support/concurrency.php';
+require __DIR__.'/Support/wallet_http.php';
 
 /*
 |--------------------------------------------------------------------------

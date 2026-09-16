@@ -2,7 +2,7 @@
 
 A mini fintech application that moves money between user wallets using a double-entry ledger.
 
-Auth, profile, KYC, and **local wallet deposit/withdraw** are exposed over HTTP. Peer transfers run at the **service layer** today (no transfer HTTP routes yet). Deposit and withdraw simulate money entering or leaving the system via the `money_in` ledger boundary. There is no real bank call.
+Auth, profile, KYC, local wallet deposit/withdraw, and peer transfers are exposed over HTTP. Deposit and withdraw simulate money entering or leaving the system via the `money_in` ledger boundary — no real bank call.
 
 ---
 
@@ -129,13 +129,12 @@ Point the browser at the Vite URL (usually `http://localhost:5173`) with `VITE_B
 ┌─────────────────────┐         cookie + CSRF          ┌────────────────────────────┐
 │  React SPA (client) │ ─────────────────────────────► │  Laravel API (/api/v1)      │
 └─────────────────────┘                                │  Auth / Profile / KYC       │
-                                                       │  Wallet deposit / withdraw  │
+                                                       │  Wallet deposit/withdraw/transfer │
                                                        └─────────────┬──────────────┘
                                                                      ▼
                                                        Services + Ledger
                                                        FundingService
-                                                       TransferService*
-* Peer transfer is service-layer only — no transfer HTTP routes yet
+                                                       TransferService
 ```
 
 ### Domain model
@@ -246,12 +245,14 @@ Base path: `/api/v1`
 | `POST` | `/user/kyc` | Sanctum | Submit KYC |
 | `POST` | `/wallet/deposit` | Sanctum + CSRF | Local deposit via `money_in` |
 | `POST` | `/wallet/withdraw` | Sanctum + CSRF | Local withdraw via `money_in` |
+| `POST` | `/wallet/transfer` | Sanctum + CSRF | Peer transfer from your primary wallet |
 
 **Funding body:** `{ "amount": <kobo int>, "narration"?: string }`  
-**Funding response:** `{ message, transaction, balance }`  
-Requires a primary wallet (complete profile first). Domain failures (insufficient balance, frozen wallet, etc.) return **422**.
+**Transfer body:** `{ "account_number": "<10 digits>", "amount": <kobo int>, "narration"?: string }`  
+**Funding/transfer response:** `{ message, transaction, balance }`  
+Requires a primary wallet (complete profile first). Domain failures (insufficient balance, frozen wallet, etc.) return **422**. Unknown recipient account numbers return **404**.
 
-**Not exposed yet:** peer transfer, balances list, or transaction history endpoints. Call `TransferService` from tests or future controllers.
+**Not exposed yet:** balances list or transaction history endpoints.
 
 Health check: `GET /up`.
 
@@ -306,7 +307,7 @@ Shared helpers live in `tests/Support/concurrency.php`.
 | Balanced postings / immutability / nested writer rollback | `tests/Feature/LedgerFoundationTest.php` |
 | Peer transfer service | `tests/Feature/TransferServiceTest.php` |
 | Funding service (deposit/withdraw) | `tests/Feature/FundingServiceTest.php` |
-| Wallet HTTP deposit/withdraw | `tests/Feature/WalletFundingTest.php` |
+| Wallet HTTP deposit/withdraw/transfer | `WalletFundingTest`, `WalletTransferTest` |
 | Pure transfer / funding rules | `TransferGuardTest`, `FundingGuardTest` |
 | Locks | `tests/Feature/AccountLockerTest.php` |
 | Primary wallet ownership | `tests/Feature/WalletResolverTest.php` |

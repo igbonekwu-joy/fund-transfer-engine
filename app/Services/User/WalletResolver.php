@@ -2,14 +2,16 @@
 
 namespace App\Services\User;
 
+use App\Enums\AccountType;
 use App\Exceptions\Ledger\InvalidTransferException;
 use App\Models\Account;
 use App\Models\User;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 /**
- * Resolve which wallet an authenticated user may use for funding operations.
+ * Resolve which wallets an authenticated user may use for funding and transfers.
  *
- * Keeps ownership out of FundingService so the ledger layer stays account-based.
+ * Keeps ownership out of ledger services so those stay account-based.
  */
 class WalletResolver
 {
@@ -27,5 +29,18 @@ class WalletResolver
         }
 
         return $wallet;
+    }
+
+    /**
+     * Resolve a recipient user wallet by public account number.
+     *
+     * @throws ModelNotFoundException When no matching user wallet exists.
+     */
+    public function recipientByAccountNumber(string $accountNumber): Account
+    {
+        return Account::query()
+            ->where('account_number', $accountNumber)
+            ->where('type', AccountType::User)
+            ->firstOrFail();
     }
 }
