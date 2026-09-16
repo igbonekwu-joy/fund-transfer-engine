@@ -8,11 +8,13 @@ use OpenApi\Attributes as OA;
     version: '1.0.0',
     title: 'Fund Transfer Engine API',
     description: <<<'MD'
-JSON API for authentication, profile, and KYC.
+JSON API for authentication, profile, KYC, and local wallet funding.
 
 Authentication uses Laravel Sanctum. Login, register, and refresh set httpOnly `access_token` and `refresh_token` cookies plus a non-httpOnly `XSRF-TOKEN` cookie. Protected routes also accept an `Authorization: Bearer {token}` header.
 
 Mutating requests (except login and register) require an `X-XSRF-TOKEN` header that matches the `XSRF-TOKEN` cookie. Login and register skip CSRF but require an `Origin` header listed in `CORS_ALLOWED_ORIGINS`.
+
+Wallet deposit and withdraw simulate money entering or leaving the system via the `money_in` ledger boundary. They do not call a real bank.
 MD
 )]
 #[OA\Server(url: '/', description: 'Current host')]
@@ -25,4 +27,5 @@ MD
 )]
 #[OA\Tag(name: 'Auth', description: 'Registration, login, token refresh, and session')]
 #[OA\Tag(name: 'User', description: 'Authenticated profile and KYC')]
+#[OA\Tag(name: 'Wallet', description: 'Local deposit and withdraw against the money_in ledger boundary')]
 class OpenApiSpec {}

@@ -29,6 +29,8 @@ it('serves the generated openapi json when documentation is enabled', function (
             '/api/v1/auth/user',
             '/api/v1/user/profile',
             '/api/v1/user/kyc',
+            '/api/v1/wallet/deposit',
+            '/api/v1/wallet/withdraw',
         ]);
 });
 

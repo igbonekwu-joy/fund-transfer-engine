@@ -132,4 +132,75 @@ use OpenApi\Attributes as OA;
     ],
     type: 'object',
 )]
+#[OA\Schema(
+    schema: 'FundingRequest',
+    required: ['amount'],
+    properties: [
+        new OA\Property(
+            property: 'amount',
+            description: 'Amount in minor units (kobo)',
+            type: 'integer',
+            minimum: 1,
+            example: 250000,
+        ),
+        new OA\Property(
+            property: 'narration',
+            description: 'Optional note stored on the ledger transaction metadata',
+            type: 'string',
+            maxLength: 255,
+            nullable: true,
+            example: 'Top up',
+        ),
+    ],
+    type: 'object',
+)]
+#[OA\Schema(
+    schema: 'LedgerTransaction',
+    required: ['id', 'type', 'status', 'amount', 'currency'],
+    properties: [
+        new OA\Property(property: 'id', type: 'string', format: 'uuid'),
+        new OA\Property(property: 'type', type: 'string', enum: ['deposit', 'withdrawal', 'transfer', 'fee'], example: 'deposit'),
+        new OA\Property(property: 'status', type: 'string', enum: ['pending', 'posted', 'failed', 'reversed'], example: 'posted'),
+        new OA\Property(
+            property: 'metadata',
+            type: 'object',
+            nullable: true,
+            example: ['narration' => 'Top up'],
+        ),
+        new OA\Property(property: 'amount', description: 'Amount in minor units (kobo)', type: 'integer', example: 250000),
+        new OA\Property(property: 'currency', type: 'string', example: 'NGN'),
+        new OA\Property(property: 'created_at', type: 'string', format: 'date-time', nullable: true),
+    ],
+    type: 'object',
+)]
+#[OA\Schema(
+    schema: 'FundingResponse',
+    required: ['message', 'transaction', 'balance'],
+    properties: [
+        new OA\Property(property: 'message', type: 'string', example: 'Deposit successful.'),
+        new OA\Property(property: 'transaction', ref: '#/components/schemas/LedgerTransaction'),
+        new OA\Property(
+            property: 'balance',
+            description: 'Updated primary wallet balance in minor units (kobo)',
+            type: 'integer',
+            example: 250000,
+        ),
+    ],
+    type: 'object',
+)]
+#[OA\Schema(
+    schema: 'MessageOrValidationError',
+    description: 'Either a domain message (insufficient balance, missing wallet) or a Laravel validation error payload.',
+    properties: [
+        new OA\Property(property: 'message', type: 'string', example: 'Insufficient balance.'),
+        new OA\Property(
+            property: 'errors',
+            description: 'Present for FormRequest validation failures',
+            type: 'object',
+            nullable: true,
+            example: ['amount' => ['The amount must be a positive integer in minor units.']],
+        ),
+    ],
+    type: 'object',
+)]
 class Schemas {}
