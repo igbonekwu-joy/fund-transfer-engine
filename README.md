@@ -192,7 +192,7 @@ Later, a real bank or payment provider can replace the *trigger* for deposit/wit
 |-------|------|
 | `FundingService` | Deposit / withdraw against `money_in` |
 | `TransferService` | Peer wallet transfer |
-| `WalletResolver` | Resolve the auth user’s primary wallet for HTTP funding |
+| `WalletResolver` | HTTP ownership: `primaryFor(user)` sender/funding wallet; `recipientByAccountNumber` for transfers |
 | `FundingGuard` / `TransferGuard` | Pure structural rules (no locks / writes) |
 | `AccountLocker` | Deadlock-safe `FOR UPDATE` (`lockPair`, `lockWithMoneyIn`) |
 | `BalancedLedgerWriter` | Balanced journal postings (`post` / `postWithinTransaction`) |
@@ -209,6 +209,7 @@ FundingService::deposit / withdraw
 
 TransferService::transfer
   DB::transaction (retry once on deadlock)
+    reject self-transfer (same account id)
     lockPair(from, to)
     TransferGuard
     balanceInMinorUnitsForUpdate()
@@ -247,10 +248,13 @@ Base path: `/api/v1`
 | `POST` | `/wallet/withdraw` | Sanctum + CSRF | Local withdraw via `money_in` |
 | `POST` | `/wallet/transfer` | Sanctum + CSRF | Peer transfer from your primary wallet |
 
+**Wallet ownership:** Deposit, withdraw, and transfer always use the authenticated user’s primary wallet as the funded/sending account. Clients never pass a sender `account_id`. Transfers identify the recipient only by public `account_number`.
+
 **Funding body:** `{ "amount": <kobo int>, "narration"?: string }`  
 **Transfer body:** `{ "account_number": "<10 digits>", "amount": <kobo int>, "narration"?: string }`  
-**Funding/transfer response:** `{ message, transaction, balance }`  
-Requires a primary wallet (complete profile first). Domain failures (insufficient balance, frozen wallet, etc.) return **422**. Unknown recipient account numbers return **404**.
+**Funding/transfer response:** `{ message, transaction, balance }` (`balance` is the caller’s primary wallet after the post)
+
+Requires a primary wallet (complete profile first). Domain failures (insufficient balance, frozen/closed wallet, self-transfer, etc.) return **422**. Unknown recipient account numbers return **404**.
 
 **Not exposed yet:** balances list or transaction history endpoints.
 
