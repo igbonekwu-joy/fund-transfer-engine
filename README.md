@@ -2,7 +2,7 @@
 
 A mini fintech application that moves money between user wallets using a double-entry ledger.
 
-The ledger and peer-transfer core live at the **service layer** at the moment. Auth, profile, and KYC are exposed over HTTP; transfer/deposit HTTP APIs are not wired yet.
+Auth, profile, KYC, and **local wallet deposit/withdraw** are exposed over HTTP. Peer transfers run at the **service layer** today (no transfer HTTP routes yet). Deposit and withdraw simulate money entering or leaving the system via the `money_in` ledger boundary. There is no real bank call.
 
 ---
 
@@ -94,7 +94,7 @@ Login and register require a matching `Origin` header in `CORS_ALLOWED_ORIGINS`.
 
 ## Running the apps
 
-### Backend + Livewire Vite + queue
+### Backend + queue + Vite
 
 ```bash
 composer dev
@@ -126,20 +126,17 @@ Point the browser at the Vite URL (usually `http://localhost:5173`) with `VITE_B
 ### High-level layout
 
 ```text
-┌─────────────────────┐         cookie + CSRF          ┌──────────────────────┐
-│  React SPA (client) │ ─────────────────────────────► │  Laravel API (/api/v1)│
-└─────────────────────┘                                │  Auth / Profile / KYC │
-                                                       └──────────┬───────────┘
-                                                        │  Services + Ledger
-                                                       │  TransferService*
-                                                       └──────────────────────┘
-* Service layer only — no transfer HTTP routes yet
+┌─────────────────────┐         cookie + CSRF          ┌────────────────────────────┐
+│  React SPA (client) │ ─────────────────────────────► │  Laravel API (/api/v1)      │
+└─────────────────────┘                                │  Auth / Profile / KYC       │
+                                                       │  Wallet deposit / withdraw  │
+                                                       └─────────────┬──────────────┘
+                                                                     ▼
+                                                       Services + Ledger
+                                                       FundingService
+                                                       TransferService*
+* Peer transfer is service-layer only — no transfer HTTP routes yet
 ```
-
-Two frontends share one backend:
-
-1. **API + React SPA** — primary product surface (cookie Sanctum auth).
-2. **Livewire settings** — server-rendered account settings and 2FA.
 
 ### Domain model
 
@@ -151,7 +148,7 @@ Transaction 1──* LedgerEntry
 Account      1──* LedgerEntry
 ```
 
-- **User** — UUID primary key; profile fields; primary wallet via `account()`; Sanctum tokens; optional 2FA.
+- **User** — UUID primary key; profile fields; primary wallet via `account()`; Sanctum tokens.
 - **Account** — UUID; `type` (`user` | `system_inbound`); `status` (`active` | `frozen` | `closed`); currency (default `NGN`); optional `account_number` / `slug`.
 - **Transaction** — Journal header: `type`, `status`, `metadata`; `isBalanced()` checks legs.
 - **LedgerEntry** — Immutable debit/credit leg in **minor units (kobo)**; updates/deletes are blocked.
@@ -174,31 +171,64 @@ Every money movement is a **transaction** with at least two **ledger entries**. 
 
 Seeded by `Database\Seeders\SystemAccountsSeeder` (`slug = money_in`).
 
-Deposits (test helper and future funding flows) look like:
-
 ```text
-Deposit:
-  debit  money_in     (funds enter the system)
-  credit user_wallet  (user balance increases)
-```
+Deposit (local funding — money enters):
+  debit  money_in
+  credit user_wallet
 
-Peer transfers never touch `money_in`:
+Withdraw (local payout simulation — reverse):
+  debit  user_wallet
+  credit money_in
 
-```text
-Transfer:
+Transfer (peer):
   debit  sender_wallet
   credit recipient_wallet
 ```
 
-### Locking, deadlocks, and retries
+Later, a real bank or payment provider can replace the *trigger* for deposit/withdraw; the ledger legs stay the same.
 
-**Why lock:** Without `SELECT … FOR UPDATE`, two concurrent transfers can both read the same balance and double-spend.
+### Services and guards
 
-**Lock order:** `AccountLocker` always locks by ascending account UUID/string id. Opposing transfers (A→B and B→A) take locks in the same order, which prevents the classic deadlock cycle.
+| Piece | Role |
+|-------|------|
+| `FundingService` | Deposit / withdraw against `money_in` |
+| `TransferService` | Peer wallet transfer |
+| `WalletResolver` | Resolve the auth user’s primary wallet for HTTP funding |
+| `FundingGuard` / `TransferGuard` | Pure structural rules (no locks / writes) |
+| `AccountLocker` | Deadlock-safe `FOR UPDATE` (`lockPair`, `lockWithMoneyIn`) |
+| `BalancedLedgerWriter` | Balanced journal postings (`post` / `postWithinTransaction`) |
 
-**Retry:** `TransferService` uses `DB::transaction(..., 2)` so a rare deadlock/serialization failure is retried once.
+### Funding and transfer pipelines
 
-**Concurrency tests:** Real races are proven with child PHP processes against MySQL (see [Testing](#testing)). SQLite in-memory cannot honor cross-connection row locks the same way.
+```text
+FundingService::deposit / withdraw
+  DB::transaction (retry once on deadlock)
+    lockWithMoneyIn(wallet)
+    FundingGuard
+    withdraw only: balanceInMinorUnitsForUpdate()
+    postWithinTransaction(Deposit|Withdrawal)
+
+TransferService::transfer
+  DB::transaction (retry once on deadlock)
+    lockPair(from, to)
+    TransferGuard
+    balanceInMinorUnitsForUpdate()
+    postWithinTransaction(Transfer)
+```
+
+### Locking, deadlocks, and balance reads
+
+**Why lock:** Without `SELECT … FOR UPDATE`, concurrent transfers or withdrawals can both read the same balance and double-spend.
+
+**Lock order:** `AccountLocker` always locks by ascending account id, including wallet + `money_in` for funding.
+
+**Current balance under concurrency:** After locking accounts, balance checks use `Account::balanceInMinorUnitsForUpdate()` (locking reads on ledger entry aggregates). A plain `SUM` under MySQL `REPEATABLE READ` can miss just-committed rows from another session.
+
+**Retry:** Both money-movement services use `DB::transaction(..., 2)`.
+
+**Concurrency tests:** Child PHP processes against MySQL (see [Testing](#testing)).
+
+---
 
 ## HTTP API
 
@@ -211,11 +241,17 @@ Base path: `/api/v1`
 | `POST` | `/auth/refresh` | Refresh cookie | Rotates tokens |
 | `POST` | `/auth/logout` | Sanctum | Clears tokens/cookies |
 | `GET` | `/auth/user` | Sanctum | Current user |
-| `POST` | `/user/profile` | Sanctum | Upsert profile + wallet |
+| `POST` | `/user/profile` | Sanctum | Upsert profile + primary wallet |
 | `GET` | `/user/kyc` | Sanctum | Current KYC state |
 | `POST` | `/user/kyc` | Sanctum | Submit KYC |
+| `POST` | `/wallet/deposit` | Sanctum + CSRF | Local deposit via `money_in` |
+| `POST` | `/wallet/withdraw` | Sanctum + CSRF | Local withdraw via `money_in` |
 
-**Not exposed yet:** deposit, peer transfer, withdrawal, balances, or transaction history endpoints. Call `TransferService` from tests or future controllers only.
+**Funding body:** `{ "amount": <kobo int>, "narration"?: string }`  
+**Funding response:** `{ message, transaction, balance }`  
+Requires a primary wallet (complete profile first). Domain failures (insufficient balance, frozen wallet, etc.) return **422**.
+
+**Not exposed yet:** peer transfer, balances list, or transaction history endpoints. Call `TransferService` from tests or future controllers.
 
 Health check: `GET /up`.
 
@@ -225,10 +261,8 @@ Health check: `GET /up`.
 
 - Package: `darkaonline/l5-swagger`
 - UI: `/api/documentation` (when `L5_SWAGGER_ENABLED=true`)
-- Spec sources: `app/OpenApi/` and controller annotations
+- Spec sources: `app/OpenApi/` (`AuthEndpoints`, `UserEndpoints`, `WalletEndpoints`, `Schemas`, `OpenApiSpec`)
 - Access gated by `RestrictSwaggerDocumentation` middleware
-
-Regenerate docs as configured in `config/l5-swagger.php` (optional `L5_SWAGGER_GENERATE_ALWAYS`).
 
 ---
 
@@ -244,7 +278,7 @@ php artisan test
 composer test   # config:clear + Pint --test + PHPStan + Pest
 ```
 
-### Concurrent transfer suite (MySQL)
+### Concurrent suite (MySQL)
 
 Requires real row-level locks:
 
@@ -257,25 +291,28 @@ CREATE DATABASE fund_transfer_engine_testing
 php artisan test -c phpunit.concurrency.xml
 ```
 
-This runs `tests/Concurrency/TransferServiceConcurrencyTest.php`, which spawns `tests/bin/transfer_worker.php` processes to prove:
+Runs `tests/Concurrency/*` with workers in `tests/bin/`:
 
-- no double-spend when two transfers exhaust the same sender
-- both succeed when funds cover both
-- opposing A↔B transfers complete without deadlock
+- **Transfers** — no double-spend; both succeed when funds allow; opposing A↔B without deadlock
+- **Withdrawals** — concurrent withdraws cannot exhaust the same wallet twice
 
+Shared helpers live in `tests/Support/concurrency.php`.  
 `Tests\ConcurrencyTestCase` disables wrapping DB transactions so committed rows are visible across processes.
 
-### Important ledger tests
+### Important ledger / funding tests
 
 | Area | Location |
 |------|----------|
 | Balanced postings / immutability / nested writer rollback | `tests/Feature/LedgerFoundationTest.php` |
-| Transfer happy path, insufficient funds, self-transfer, mid-flight rollback, edge cases | `tests/Feature/TransferServiceTest.php` |
-| Pure transfer rules | `tests/Feature/TransferGuardTest.php` |
-| Ordered `FOR UPDATE` locks | `tests/Feature/AccountLockerTest.php` |
-| Concurrent races | `tests/Concurrency/TransferServiceConcurrencyTest.php` |
+| Peer transfer service | `tests/Feature/TransferServiceTest.php` |
+| Funding service (deposit/withdraw) | `tests/Feature/FundingServiceTest.php` |
+| Wallet HTTP deposit/withdraw | `tests/Feature/WalletFundingTest.php` |
+| Pure transfer / funding rules | `TransferGuardTest`, `FundingGuardTest` |
+| Locks | `tests/Feature/AccountLockerTest.php` |
+| Primary wallet ownership | `tests/Feature/WalletResolverTest.php` |
+| Concurrent races | `tests/Concurrency/*` |
 
-Test funding helper: `fundAccount()` in `tests/Pest.php` (deposit via `money_in`).
+Test helper: `fundAccount()` in `tests/Pest.php` (deposit via `money_in`).
 
 ---
 
