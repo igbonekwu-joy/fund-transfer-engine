@@ -90,7 +90,8 @@ it('rejects transfers to an unknown account number', function () {
         'amount' => 1_000_00,
     ]);
 
-    $response->assertNotFound();
+    $response->assertNotFound()
+        ->assertJsonPath('message', 'Account not found.');
 });
 
 it('rejects self-transfers to the same account number', function () {

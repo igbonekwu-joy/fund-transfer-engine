@@ -262,6 +262,20 @@ FormRequests validate shape only. Domain rules (currency match, frozen/closed, s
 
 Invalid bodies return Laravel’s standard validation JSON (**422** with `message` + `errors`).
 
+### Error responses (Stage 5 Step 4)
+
+Money API failures use a small, stable set of envelopes — no exception class names, file paths, or stack traces.
+
+| Failure | Status | Body |
+|---------|--------|------|
+| Unauthenticated | **401** | `{ "message": "Unauthenticated." }` |
+| CSRF / origin mismatch | **419** | `{ "message": "…" }` |
+| FormRequest validation | **422** | `{ "message": "…", "errors": { … } }` |
+| Domain rejection (insufficient funds, self-transfer, frozen/closed, no primary wallet, …) | **422** | `{ "message": "…" }` only |
+| Unknown recipient / missing account | **404** | `{ "message": "Account not found." }` |
+
+Domain exceptions: `InsufficientBalanceException` and `InvalidTransferException` (`ShouldntReport`, render as JSON). Account `ModelNotFoundException` on `api/*` is normalized to the 404 row above.
+
 ### All routes
 
 | Method | Path | Auth | Notes |
@@ -340,6 +354,7 @@ Shared helpers live in `tests/Support/concurrency.php`.
 | Peer transfer service | `tests/Feature/TransferServiceTest.php` |
 | Funding service (deposit/withdraw) | `tests/Feature/FundingServiceTest.php` |
 | Wallet HTTP deposit/withdraw/transfer | `WalletFundingTest`, `WalletTransferTest` |
+| Money API error envelopes | `tests/Feature/WalletErrorResponsesTest.php` |
 | Pure transfer / funding rules | `TransferGuardTest`, `FundingGuardTest` |
 | Locks | `tests/Feature/AccountLockerTest.php` |
 | Primary wallet ownership | `tests/Feature/WalletResolverTest.php` |
