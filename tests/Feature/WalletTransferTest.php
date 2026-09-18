@@ -95,18 +95,51 @@ it('rejects self-transfers to the same account number', function () {
     expect($wallet->fresh()->balanceInMinorUnits())->toBe(5_000_00);
 });
 
-it('validates transfer payload', function () {
+it('validates transfer payload', function (array $payload, array $errors) {
     $user = User::factory()->create();
     Account::factory()->for($user)->create();
 
+    $response = postWallet($this, $user, '/api/v1/wallet/transfer', $payload);
+
+    $response->assertStatus(422)
+        ->assertJsonValidationErrors($errors);
+})->with([
+    'short account number and zero amount' => [
+        ['account_number' => '123', 'amount' => 0],
+        ['account_number', 'amount'],
+    ],
+    'non-digit account number' => [
+        ['account_number' => 'abcdefghij', 'amount' => 100_00],
+        ['account_number'],
+    ],
+    'missing account number' => [
+        ['amount' => 100_00],
+        ['account_number'],
+    ],
+    'decimal amount' => [
+        ['account_number' => '0123456789', 'amount' => '50.25'],
+        ['amount'],
+    ],
+]);
+
+it('rejects client-supplied account ids on transfer', function (string $field) {
+    $user = User::factory()->create();
+    $sender = Account::factory()->for($user)->create();
+    $recipient = Account::factory()->create();
+
     $response = postWallet($this, $user, '/api/v1/wallet/transfer', [
-        'account_number' => '123',
-        'amount' => 0,
+        'account_number' => $recipient->account_number,
+        'amount' => 100_00,
+        $field => $sender->id,
     ]);
 
     $response->assertStatus(422)
-        ->assertJsonValidationErrors(['account_number', 'amount']);
-});
+        ->assertJsonValidationErrors($field);
+})->with([
+    'account_id',
+    'from_account_id',
+    'to_account_id',
+]);
 
 it('rejects transfers when the sender has no primary wallet', function () {
     $user = User::factory()->create();

@@ -85,16 +85,33 @@ it('rejects funding when the user has no primary wallet', function () {
         ->assertJsonPath('message', 'User does not have a primary wallet.');
 });
 
-it('validates amount on deposit', function () {
+it('validates amount on deposit', function (mixed $amount) {
     $user = User::factory()->create();
     Account::factory()->for($user)->create();
 
     $response = postWallet($this, $user, '/api/v1/wallet/deposit', [
-        'amount' => 0,
+        'amount' => $amount,
     ]);
 
     $response->assertStatus(422)
         ->assertJsonValidationErrors('amount');
+})->with([
+    'zero' => [0],
+    'negative' => [-100_00],
+    'decimal string' => ['10.5'],
+]);
+
+it('rejects client-supplied account_id on deposit', function () {
+    $user = User::factory()->create();
+    $wallet = Account::factory()->for($user)->create();
+
+    $response = postWallet($this, $user, '/api/v1/wallet/deposit', [
+        'amount' => 1_000_00,
+        'account_id' => $wallet->id,
+    ]);
+
+    $response->assertStatus(422)
+        ->assertJsonValidationErrors('account_id');
 });
 
 it('validates negative amounts on withdraw', function () {

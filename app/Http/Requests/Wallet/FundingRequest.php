@@ -20,6 +20,8 @@ class FundingRequest extends FormRequest
         return [
             'amount' => ['required', 'integer', 'min:1'],
             'narration' => ['nullable', 'string', 'max:255'],
+            // Mutations always use the auth user's primary wallet, never a client account id.
+            'account_id' => ['prohibited'],
         ];
     }
 
@@ -32,6 +34,7 @@ class FundingRequest extends FormRequest
             'amount.required' => 'The amount is required.',
             'amount.integer' => 'The amount must be an integer in minor units.',
             'amount.min' => 'The amount must be a positive integer in minor units.',
+            'account_id.prohibited' => 'Do not send account_id; funding always uses your primary wallet.',
         ];
     }
 
