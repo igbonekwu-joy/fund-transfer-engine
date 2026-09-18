@@ -233,6 +233,44 @@ use OpenApi\Attributes as OA;
     type: 'object',
 )]
 #[OA\Schema(
+    schema: 'AccountTransactionItem',
+    required: ['id', 'type', 'status', 'amount', 'currency', 'direction', 'created_at'],
+    properties: [
+        new OA\Property(property: 'id', description: 'Ledger transaction UUID', type: 'string', format: 'uuid'),
+        new OA\Property(property: 'type', type: 'string', enum: ['deposit', 'withdrawal', 'transfer', 'fee'], example: 'transfer'),
+        new OA\Property(property: 'status', type: 'string', enum: ['pending', 'posted', 'failed', 'reversed'], example: 'posted'),
+        new OA\Property(property: 'amount', description: 'Leg amount in minor units (kobo)', type: 'integer', example: 250000),
+        new OA\Property(property: 'currency', type: 'string', example: 'NGN'),
+        new OA\Property(property: 'direction', type: 'string', enum: ['debit', 'credit'], example: 'debit'),
+        new OA\Property(property: 'narration', type: 'string', nullable: true, example: 'Lunch'),
+        new OA\Property(property: 'created_at', type: 'string', format: 'date-time', nullable: true),
+    ],
+    type: 'object',
+)]
+#[OA\Schema(
+    schema: 'AccountTransactionsResponse',
+    required: ['data', 'meta'],
+    properties: [
+        new OA\Property(
+            property: 'data',
+            type: 'array',
+            items: new OA\Items(ref: '#/components/schemas/AccountTransactionItem'),
+        ),
+        new OA\Property(
+            property: 'meta',
+            required: ['current_page', 'per_page', 'total', 'last_page'],
+            properties: [
+                new OA\Property(property: 'current_page', type: 'integer', example: 1),
+                new OA\Property(property: 'per_page', type: 'integer', example: 25),
+                new OA\Property(property: 'total', type: 'integer', example: 2),
+                new OA\Property(property: 'last_page', type: 'integer', example: 1),
+            ],
+            type: 'object',
+        ),
+    ],
+    type: 'object',
+)]
+#[OA\Schema(
     schema: 'MessageOrValidationError',
     description: 'Either a domain message (insufficient balance, missing wallet) or a Laravel validation error payload.',
     properties: [

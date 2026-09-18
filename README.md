@@ -292,12 +292,14 @@ Domain exceptions: `InsufficientBalanceException` and `InvalidTransferException`
 | `POST` | `/wallet/withdraw` | Sanctum + CSRF | Local withdraw via `money_in` |
 | `POST` | `/wallet/transfer` | Sanctum + CSRF | Peer transfer from your primary wallet |
 | `GET` | `/accounts/{account}/balance` | Sanctum | Owned-account balance (kobo) |
-| `GET` | `/accounts/{account}/transactions` | Sanctum | **Planned** — owned-account history |
+| `GET` | `/accounts/{account}/transactions` | Sanctum | Owned-account history (paginated) |
 
 **Funding body:** `{ "amount": <kobo int>, "narration"?: string }`  
 **Transfer body:** `{ "account_number": "<10 digits>", "amount": <kobo int>, "narration"?: string }`  
 **Funding/transfer response:** `{ message, transaction, balance }` (`balance` is the caller’s primary wallet after the post)  
-**Balance response:** `{ account_id, currency, balance }`
+**Balance response:** `{ account_id, currency, balance }`  
+**Transactions response:** `{ data: [{ id, type, status, amount, currency, direction, narration, created_at }], meta: { current_page, per_page, total, last_page } }`  
+Optional query: `?per_page=1..100` (default 25) and `?page=`.
 
 Requires a primary wallet (complete profile first). Domain failures (insufficient balance, frozen/closed wallet, self-transfer, etc.) return **422**. Unknown recipient account numbers return **404**.
 
@@ -356,6 +358,7 @@ Shared helpers live in `tests/Support/concurrency.php`.
 | Funding service (deposit/withdraw) | `tests/Feature/FundingServiceTest.php` |
 | Wallet HTTP deposit/withdraw/transfer | `WalletFundingTest`, `WalletTransferTest` |
 | Account balance HTTP | `tests/Feature/AccountBalanceTest.php` |
+| Account transactions HTTP | `tests/Feature/AccountTransactionsTest.php` |
 | Money API error envelopes | `tests/Feature/WalletErrorResponsesTest.php` |
 | Pure transfer / funding rules | `TransferGuardTest`, `FundingGuardTest` |
 | Locks | `tests/Feature/AccountLockerTest.php` |

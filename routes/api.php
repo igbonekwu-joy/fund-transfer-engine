@@ -34,6 +34,7 @@ Route::prefix('v1')->group(function () {
 
         Route::prefix('accounts')->group(function () {
             Route::get('{account}/balance', [AccountController::class, 'balance']);
+            Route::get('{account}/transactions', [AccountController::class, 'transactions']);
         });
     });
 });
