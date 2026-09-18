@@ -28,4 +28,5 @@ MD
 #[OA\Tag(name: 'Auth', description: 'Registration, login, token refresh, and session')]
 #[OA\Tag(name: 'User', description: 'Authenticated profile and KYC')]
 #[OA\Tag(name: 'Wallet', description: 'Deposit, withdraw, and peer transfer for the authenticated user\'s primary wallet')]
+#[OA\Tag(name: 'Accounts', description: 'Owned account reads (balance, transaction history)')]
 class OpenApiSpec {}

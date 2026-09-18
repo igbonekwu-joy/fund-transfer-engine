@@ -32,6 +32,7 @@ it('serves the generated openapi json when documentation is enabled', function (
             '/api/v1/wallet/deposit',
             '/api/v1/wallet/withdraw',
             '/api/v1/wallet/transfer',
+            '/api/v1/accounts/{account}/balance',
         ]);
 });
 

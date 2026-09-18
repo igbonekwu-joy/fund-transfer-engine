@@ -218,6 +218,21 @@ use OpenApi\Attributes as OA;
     type: 'object',
 )]
 #[OA\Schema(
+    schema: 'AccountBalanceResponse',
+    required: ['account_id', 'currency', 'balance'],
+    properties: [
+        new OA\Property(property: 'account_id', type: 'string', format: 'uuid'),
+        new OA\Property(property: 'currency', type: 'string', example: 'NGN'),
+        new OA\Property(
+            property: 'balance',
+            description: 'Current balance in minor units (kobo)',
+            type: 'integer',
+            example: 325000,
+        ),
+    ],
+    type: 'object',
+)]
+#[OA\Schema(
     schema: 'MessageOrValidationError',
     description: 'Either a domain message (insufficient balance, missing wallet) or a Laravel validation error payload.',
     properties: [

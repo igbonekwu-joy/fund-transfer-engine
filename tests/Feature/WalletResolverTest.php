@@ -51,3 +51,31 @@ it('fails when the recipient account number does not exist', function () {
     expect(fn () => app(WalletResolver::class)->recipientByAccountNumber('9999999999'))
         ->toThrow(ModelNotFoundException::class);
 });
+
+it('resolves an owned user wallet for account reads', function () {
+    $user = User::factory()->create();
+    $wallet = Account::factory()->for($user)->create();
+
+    $resolved = app(WalletResolver::class)->ownedUserWalletFor($user, $wallet);
+
+    expect($resolved->is($wallet))->toBeTrue();
+});
+
+it('rejects another users wallet for account reads', function () {
+    $owner = User::factory()->create();
+    $other = User::factory()->create();
+    $wallet = Account::factory()->for($owner)->create();
+
+    expect(fn () => app(WalletResolver::class)->ownedUserWalletFor($other, $wallet))
+        ->toThrow(ModelNotFoundException::class);
+});
+
+it('rejects system accounts for account reads', function () {
+    $user = User::factory()->create();
+    $moneyIn = Account::factory()->systemInbound()->create([
+        'slug' => 'other_inbound',
+    ]);
+
+    expect(fn () => app(WalletResolver::class)->ownedUserWalletFor($user, $moneyIn))
+        ->toThrow(ModelNotFoundException::class);
+});

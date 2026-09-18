@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\AccountController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\KycController;
 use App\Http\Controllers\Api\ProfileController;
@@ -29,6 +30,10 @@ Route::prefix('v1')->group(function () {
             Route::post('deposit', [WalletController::class, 'deposit']);
             Route::post('withdraw', [WalletController::class, 'withdraw']);
             Route::post('transfer', [WalletController::class, 'transfer']);
+        });
+
+        Route::prefix('accounts')->group(function () {
+            Route::get('{account}/balance', [AccountController::class, 'balance']);
         });
     });
 });

@@ -238,8 +238,8 @@ Base path: `/api/v1`
 
 - Mutations always use the authenticated user’s **primary wallet** as the funded/sending account. Clients never pass a sender `account_id`.
 - Transfers identify the recipient only by public **`account_number`** (10 digits).
-- Read routes take the account **UUID** in the path and must enforce ownership (later steps).
-- Auth: Sanctum; cookie SPA calls also need CSRF (`X-XSRF-TOKEN`).
+- Read routes take the account **UUID** in the path and enforce ownership via `WalletResolver::ownedUserWalletFor` (**404** if not yours / not a user wallet).
+- Auth: Sanctum; mutating cookie SPA calls also need CSRF (`X-XSRF-TOKEN`). GETs do not.
 
 **Mutation pipeline (Step 3):**
 
@@ -258,7 +258,7 @@ FormRequests validate shape only. Domain rules (currency match, frozen/closed, s
 |----------|-------|
 | `POST /wallet/deposit` (and withdraw) | `amount` required integer ≥ 1 (kobo); `narration` optional string ≤ 255; `account_id` **prohibited** |
 | `POST /wallet/transfer` | `account_number` required 10 digits; `amount` ≥ 1; `narration` optional; `account_id` / `from_account_id` / `to_account_id` **prohibited** |
-| `GET /accounts/{account}/…` | Path `{account}` is the account UUID (route binding + ownership in later steps) |
+| `GET /accounts/{account}/…` | Path `{account}` is the account UUID (route model binding); ownership enforced in the controller |
 
 Invalid bodies return Laravel’s standard validation JSON (**422** with `message` + `errors`).
 
@@ -291,12 +291,13 @@ Domain exceptions: `InsufficientBalanceException` and `InvalidTransferException`
 | `POST` | `/wallet/deposit` | Sanctum + CSRF | Local deposit via `money_in` |
 | `POST` | `/wallet/withdraw` | Sanctum + CSRF | Local withdraw via `money_in` |
 | `POST` | `/wallet/transfer` | Sanctum + CSRF | Peer transfer from your primary wallet |
-| `GET` | `/accounts/{account}/balance` | Sanctum | **Planned** — owned-account balance |
+| `GET` | `/accounts/{account}/balance` | Sanctum | Owned-account balance (kobo) |
 | `GET` | `/accounts/{account}/transactions` | Sanctum | **Planned** — owned-account history |
 
 **Funding body:** `{ "amount": <kobo int>, "narration"?: string }`  
 **Transfer body:** `{ "account_number": "<10 digits>", "amount": <kobo int>, "narration"?: string }`  
-**Funding/transfer response:** `{ message, transaction, balance }` (`balance` is the caller’s primary wallet after the post)
+**Funding/transfer response:** `{ message, transaction, balance }` (`balance` is the caller’s primary wallet after the post)  
+**Balance response:** `{ account_id, currency, balance }`
 
 Requires a primary wallet (complete profile first). Domain failures (insufficient balance, frozen/closed wallet, self-transfer, etc.) return **422**. Unknown recipient account numbers return **404**.
 
@@ -308,7 +309,7 @@ Health check: `GET /up`.
 
 - Package: `darkaonline/l5-swagger`
 - UI: `/api/documentation` (when `L5_SWAGGER_ENABLED=true`)
-- Spec sources: `app/OpenApi/` (`AuthEndpoints`, `UserEndpoints`, `WalletEndpoints`, `Schemas`, `OpenApiSpec`)
+- Spec sources: `app/OpenApi/` (`AuthEndpoints`, `UserEndpoints`, `WalletEndpoints`, `AccountEndpoints`, `Schemas`, `OpenApiSpec`)
 - Access gated by `RestrictSwaggerDocumentation` middleware
 
 ---
@@ -354,6 +355,7 @@ Shared helpers live in `tests/Support/concurrency.php`.
 | Peer transfer service | `tests/Feature/TransferServiceTest.php` |
 | Funding service (deposit/withdraw) | `tests/Feature/FundingServiceTest.php` |
 | Wallet HTTP deposit/withdraw/transfer | `WalletFundingTest`, `WalletTransferTest` |
+| Account balance HTTP | `tests/Feature/AccountBalanceTest.php` |
 | Money API error envelopes | `tests/Feature/WalletErrorResponsesTest.php` |
 | Pure transfer / funding rules | `TransferGuardTest`, `FundingGuardTest` |
 | Locks | `tests/Feature/AccountLockerTest.php` |
