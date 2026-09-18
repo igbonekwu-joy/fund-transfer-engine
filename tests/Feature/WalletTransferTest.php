@@ -34,9 +34,24 @@ it('transfers from the authenticated users primary wallet to a recipient account
     ]);
 
     $response->assertOk()
+        ->assertJsonStructure([
+            'message',
+            'transaction' => [
+                'id',
+                'type',
+                'status',
+                'metadata',
+                'amount',
+                'currency',
+                'created_at',
+            ],
+            'balance',
+        ])
         ->assertJsonPath('message', 'Transfer successful.')
         ->assertJsonPath('transaction.type', 'transfer')
+        ->assertJsonPath('transaction.status', 'posted')
         ->assertJsonPath('transaction.amount', 2_500_00)
+        ->assertJsonPath('transaction.currency', 'NGN')
         ->assertJsonPath('transaction.metadata.narration', 'Lunch')
         ->assertJsonPath('balance', 7_500_00);
 
@@ -93,6 +108,26 @@ it('rejects self-transfers to the same account number', function () {
         ->assertJsonPath('message', 'Cannot transfer to the same account.');
 
     expect($wallet->fresh()->balanceInMinorUnits())->toBe(5_000_00);
+});
+
+it('rejects transfers to a frozen recipient', function () {
+    $senderUser = User::factory()->create();
+    $recipientUser = User::factory()->create();
+    $sender = Account::factory()->for($senderUser)->create();
+    $recipient = Account::factory()->for($recipientUser)->frozen()->create();
+
+    app(FundingService::class)->deposit($sender, 5_000_00);
+
+    $response = postWallet($this, $senderUser, '/api/v1/wallet/transfer', [
+        'account_number' => $recipient->account_number,
+        'amount' => 1_000_00,
+    ]);
+
+    $response->assertStatus(422)
+        ->assertJsonPath('message', 'Recipient account is not active.');
+
+    expect($sender->fresh()->balanceInMinorUnits())->toBe(5_000_00)
+        ->and($recipient->fresh()->balanceInMinorUnits())->toBe(0);
 });
 
 it('validates transfer payload', function (array $payload, array $errors) {

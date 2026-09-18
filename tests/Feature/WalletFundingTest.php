@@ -28,9 +28,24 @@ it('deposits into the authenticated users primary wallet', function () {
     ]);
 
     $response->assertOk()
+        ->assertJsonStructure([
+            'message',
+            'transaction' => [
+                'id',
+                'type',
+                'status',
+                'metadata',
+                'amount',
+                'currency',
+                'created_at',
+            ],
+            'balance',
+        ])
         ->assertJsonPath('message', 'Deposit successful.')
         ->assertJsonPath('transaction.type', 'deposit')
+        ->assertJsonPath('transaction.status', 'posted')
         ->assertJsonPath('transaction.amount', 2_500_00)
+        ->assertJsonPath('transaction.currency', 'NGN')
         ->assertJsonPath('transaction.metadata.narration', 'Top up')
         ->assertJsonPath('balance', 2_500_00);
 
